@@ -117,9 +117,14 @@ class WhatsAppListener:
         # Estado interno
         self.db_path = DB_PATH
         self.last_known_sender = "Desconhecido"
-        self.group_other_members = []  # Nomes dos outros membros do grupo
+        self.group_other_members = []
         self.current_date = date.today().strftime("%Y-%m-%d")
         self.running = True
+        
+        # Buffer de deduplicação por sequência (Sliding Window)
+        # Armazena tuplas (sender, content, timestamp, media_type) da última tela
+        self._message_buffer = []
+        self._saved_sequences = set()  # Hashes de sequências já salvas
         
         # Inicializa banco de dados
         self._init_db()
@@ -172,9 +177,9 @@ class WhatsAppListener:
             self.log.critical(f"Erro fatal no banco de dados: {e}")
             raise
 
-    def save_message(self, sender, content, timestamp, media_type="text"):
-        """Salva uma mensagem no banco com deduplicação por hash."""
-        msg_id = self._hash(sender, content, timestamp, media_type)
+    def save_message(self, sender, content, timestamp, media_type="text", seq_index=0):
+        """Salva uma mensagem no banco com deduplicação por hash + índice sequencial."""
+        msg_id = self._hash(sender, content, timestamp, media_type, seq_index)
         try:
             self.conn.execute(
                 "INSERT INTO messages (id, group_name, sender, content, media_type, timestamp_str, message_date) "
@@ -189,9 +194,9 @@ class WhatsAppListener:
             self.log.error(f"Erro ao salvar mensagem: {e}")
             return False
 
-    def _hash(self, sender, content, timestamp, media_type):
-        """Gera hash MD5 único para deduplicação."""
-        data = f"{self._current_group}|{sender}|{content}|{timestamp}|{media_type}".encode('utf-8')
+    def _hash(self, sender, content, timestamp, media_type, seq_index=0):
+        """Gera hash MD5 único para deduplicação. Inclui índice sequencial."""
+        data = f"{self._current_group}|{sender}|{content}|{timestamp}|{media_type}|{seq_index}".encode('utf-8')
         return hashlib.md5(data).hexdigest()
 
     # -----------------------------------------------------------------------
@@ -351,7 +356,8 @@ class WhatsAppListener:
     def _parse_messages_from_xml(self, root):
         """
         Percorre o XML e identifica mensagens por seus resource-ids.
-        Para cada mensagem, verifica se há 'status' (Lida/Entregue) no mesmo bloco.
+        Usa Sliding Window para deduplicar: compara a sequência atual
+        com o buffer da tela anterior para encontrar o ponto de sobreposição.
         """
         import xml.etree.ElementTree as ET
         count = 0
@@ -371,7 +377,6 @@ class WhatsAppListener:
             desc = node.get('content-desc', '')
             bounds_str = node.get('bounds', '')
             
-            # Parse bounds [x1,y1][x2,y2]
             bounds = self._parse_bounds(bounds_str)
             
             all_elements.append({
@@ -383,19 +388,76 @@ class WhatsAppListener:
                 'node': node
             })
         
-        # Mapa de posição vertical -> elementos nessa linha
-        # Agrupa elementos por proximidade vertical (tolerância de 80px)
+        # Agrupa elementos por proximidade vertical
         message_rows = self._group_elements_by_row(all_elements)
         
+        # 1. Coleta TODAS as mensagens da tela atual como uma SEQUÊNCIA ordenada
+        current_screen = []
         for row in message_rows:
             result = self._process_row(row)
             if result:
-                sender, content, timestamp, media_type = result
-                if self.save_message(sender, content, timestamp, media_type):
-                    count += 1
-                    self.log.info(f"[{media_type.upper()}] {sender}: {content[:40]}... ({timestamp})")
+                current_screen.append(result)
+        
+        if not current_screen:
+            return 0
+        
+        # 2. Encontra o ponto de sobreposição com o buffer anterior
+        #    A sobreposição é o maior sufixo do buffer que coincide com um prefixo da tela atual
+        overlap_size = self._find_overlap(self._message_buffer, current_screen)
+        
+        # 3. Salva apenas as mensagens NOVAS (após a sobreposição)
+        new_messages = current_screen[overlap_size:]
+        
+        for msg in new_messages:
+            sender, content, timestamp, media_type = msg
+            # Calcula o índice sequencial global desta mensagem
+            # (quantas vezes essa mesma tupla já apareceu no banco)
+            seq_key = f"{self._current_group}|{sender}|{content}|{timestamp}|{media_type}"
+            if seq_key not in self._saved_sequences:
+                self._saved_sequences = set()  # Limita memória: só rastreia sessão atual
+            
+            # Conta ocorrências anteriores no DB para este exato conteúdo
+            try:
+                cursor = self.conn.execute(
+                    "SELECT COUNT(*) FROM messages WHERE group_name=? AND sender=? AND content=? AND timestamp_str=? AND media_type=?",
+                    (self._current_group, sender, content, timestamp, media_type)
+                )
+                existing_count = cursor.fetchone()[0]
+            except Exception:
+                existing_count = 0
+            
+            seq_index = existing_count  # Próximo índice disponível
+            
+            if self.save_message(sender, content, timestamp, media_type, seq_index):
+                count += 1
+                self.log.info(f"[{media_type.upper()}] {sender}: {content[:40]}... ({timestamp})")
+        
+        # 4. Atualiza o buffer para o próximo scroll
+        self._message_buffer = current_screen
         
         return count
+    
+    def _find_overlap(self, buffer, current):
+        """
+        Encontra o maior sufixo de 'buffer' que coincide com um prefixo de 'current'.
+        Retorna o tamanho da sobreposição.
+        """
+        if not buffer or not current:
+            return 0
+        
+        max_overlap = min(len(buffer), len(current))
+        
+        for size in range(max_overlap, 0, -1):
+            # Compara o sufixo do buffer (últimos 'size' itens)
+            # com o prefixo do current (primeiros 'size' itens)
+            suffix = buffer[-size:]
+            prefix = current[:size]
+            
+            if suffix == prefix:
+                self.log.debug(f"Overlap de {size} mensagens detectado entre telas.")
+                return size
+        
+        return 0
 
     def _parse_bounds(self, bounds_str):
         """Converte '[x1,y1][x2,y2]' em dict."""
