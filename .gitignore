@@ -1,34 +1,8 @@
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-*.egg-info/
-dist/
-build/
-*.egg
-
-# Virtual environment
 .venv/
-venv/
-env/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Environment variables
-.env
-
-# Generated data
-*.db
-*.db-wal
-*.db-shm
-*.csv
+__pycache__/
+*.db*
 *.log
-*.xml
-
-# OS
-Thumbs.db
+*.csv
 .DS_Store
+find_badge.py
+chat_list_dump.xml

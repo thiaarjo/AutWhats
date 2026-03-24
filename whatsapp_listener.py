@@ -27,7 +27,7 @@ DB_PATH = os.path.join(BASE_DIR, "whatsapp_capture.db")
 LOG_PATH = os.path.join(BASE_DIR, "scraper.log")
 CSV_PATH = os.path.join(BASE_DIR, "mensagens_capturadas.csv")
 
-DEVICE_SERIAL = "RX8RC0HXX3F"
+DEVICE_SERIAL = "192.168.0.254:33325"
 PACKAGE_NAME = "com.whatsapp.w4b"
 
 # Resource IDs mapeados via Weditor
@@ -135,9 +135,10 @@ class WhatsAppListener:
     def _init_db(self):
         """Cria/atualiza a tabela de mensagens com suporte a mídia e data."""
         try:
-            self.conn = sqlite3.connect(self.db_path, timeout=30)
-            self.conn.execute("PRAGMA journal_mode=WAL")  # Write-Ahead Log para performance
-            self.conn.execute("PRAGMA busy_timeout=5000")  # Espera 5s em caso de lock
+            self.conn = sqlite3.connect(self.db_path, timeout=60)
+            self.conn.execute("PRAGMA journal_mode=WAL")
+            self.conn.execute("PRAGMA busy_timeout=15000")
+            self.conn.execute("PRAGMA synchronous=NORMAL")
             cursor = self.conn.cursor()
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS messages (
@@ -355,6 +356,9 @@ class WhatsAppListener:
         import xml.etree.ElementTree as ET
         count = 0
         
+        # Reinicia o rastreador de timestamp para este scan
+        self.last_seen_timestamp = datetime.now().strftime("%H:%M")
+        
         # Coleta TODOS os elementos WhatsApp relevantes com suas posições
         all_elements = []
         for node in root.iter('node'):
@@ -473,7 +477,12 @@ class WhatsAppListener:
         if has_status:
             sender = "Eu"
         elif has_sender_name and has_sender_name['text']:
-            sender = has_sender_name['text'].replace('\u200e', '').strip()
+            # Limpa lixo Unicode e nomes que vem com prefixos na UI
+            raw_name = has_sender_name['text'].replace('\u200e', '').strip()
+            # Se vier algo como "Fulano: ", remove o ":"
+            if raw_name.endswith(':'):
+                raw_name = raw_name[:-1].strip()
+            sender = raw_name
             self.last_known_sender = sender
         elif self.group_other_members:
             sender = self.group_other_members[0]
@@ -481,7 +490,12 @@ class WhatsAppListener:
             sender = self.last_known_sender
         
         # Determina o timestamp
-        timestamp = has_timestamp['text'] if has_timestamp else datetime.now().strftime("%H:%M")
+        if has_timestamp and has_timestamp['text']:
+            timestamp = has_timestamp['text']
+            self.last_seen_timestamp = timestamp
+        else:
+            # Herda o último timestamp visto (evita duplicatas por 'now()')
+            timestamp = self.last_seen_timestamp
         
         # Processa o conteúdo baseado no tipo
         if has_message_text and has_message_text['text']:
@@ -620,17 +634,26 @@ class WhatsAppListener:
     # -----------------------------------------------------------------------
     # INGESTÃO DE LEGADO (HISTÓRICO)
     # -----------------------------------------------------------------------
-    def ingest_legacy(self, scrolls=5):
-        """Sobe a conversa para capturar mensagens antigas."""
-        self.log.info(f"Ingestão de legado: {scrolls} scrolls programados.")
+    def ingest_legacy(self, scrolls=5, direction="passado"):
+        """
+        Sobe ou desce a conversa para capturar mensagens antigas (histórico).
+        direction: 'passado' (vê o que veio antes) ou 'futuro' (vê o que veio depois)
+        """
+        self.log.info(f"Ingestão de legado: {scrolls} scrolls na direção '{direction}'.")
         total = 0
+        # 'passado' = arrastar para BAIXO (swipe down)
+        # 'futuro' = arrastar para CIMA (swipe up)
+        swipe_dir = "down" if direction == "passado" else "up"
+        
         for i in range(scrolls):
             if not self.running:
                 break
             found = self.scrape_visible_messages()
             total += found
             self.log.info(f"Scroll {i+1}/{scrolls} - {found} novas neste scroll, {total} total.")
-            self.d.swipe_ext("down", scale=0.8)
+            
+            # Executa o scroll
+            self.d.swipe_ext(swipe_dir, scale=0.8)
             time.sleep(1.5)
         
         self.log.info(f"Ingestão de legado concluída: {total} mensagens capturadas.")
@@ -672,14 +695,39 @@ class WhatsAppListener:
                     
                     self._current_group = group
                     
-                    # Verifica se há mensagens não lidas (badge)
+                    # Verifica se há mensagens não lidas (badge) ou se é hora de Force Scan
                     has_unread = self._check_unread_badge(group)
+                    is_force_scan = (cycle % 5 == 0) # Force scan a cada 5 ciclos (~1.5 min)
                     
-                    if has_unread:
-                        self.log.info(f"🔔 Mensagens novas detectadas em '{group}'!")
+                    if has_unread or is_force_scan:
+                        if is_force_scan and not has_unread:
+                            self.log.info(f"🔍 Executando Force Scan periódico em '{group}'...")
+                        else:
+                            self.log.info(f"🔔 Mensagens novas detectadas em '{group}'!")
                         
                         if self.navigate_to_group(group):
-                            self.scrape_visible_messages()
+                            # Loop de captura com scroll para garantir que pegamos tudo
+                            total_new_in_session = 0
+                            no_new_consecutive = 0
+                            
+                            while no_new_consecutive < 2 and self.running:
+                                found = self.scrape_visible_messages()
+                                if found > 0:
+                                    total_new_in_session += found
+                                    no_new_consecutive = 0
+                                    # Desliza o dedo para CIMA para rolar a conversa para BAIXO (mais novas)
+                                    self.log.debug("Rolando para baixo para buscar mais mensagens novas...")
+                                    self.d.swipe_ext("up", scale=0.7)
+                                    time.sleep(1.5)
+                                else:
+                                    no_new_consecutive += 1
+                                    if no_new_consecutive < 2:
+                                        # Pequeno scroll adicional para garantir que não parou no meio de um balão
+                                        self.d.swipe_ext("up", scale=0.3)
+                                        time.sleep(1)
+                            
+                            if total_new_in_session > 0:
+                                self.log.info(f"Sessão de captura em '{group}' finalizada. Total: {total_new_in_session}")
                             self.return_to_chat_list()
                         else:
                             self.log.warning(f"Não foi possível entrar no grupo '{group}'.")
@@ -699,24 +747,44 @@ class WhatsAppListener:
 
     def _check_unread_badge(self, group_name):
         """
-        Verifica se há badge de mensagens não lidas no grupo.
-        Retorna True se houver indicadores de novas mensagens.
+        Verifica se há badge de mensagens não lidas no grupo de forma ultra-agressiva.
         """
         try:
-            # Procura pela entrada do grupo na lista de conversas
-            group_entry = self.d(text=group_name)
-            if not group_entry.exists(timeout=1):
-                return False
+            # 1. Busca a entrada do grupo (ignora fuxicos Unicode)
+            group_el = self.d(text=group_name)
+            if not group_el.exists:
+                # Tenta busca parcial se o nome oficial falhar
+                group_el = self.d(textContains=group_name)
+                if not group_el.exists:
+                    return False
             
-            # Verifica se há um badge numérico (bolinha verde com número)
-            # O WhatsApp usa um elemento com o count de mensagens não lidas
-            # Abordagem: navegar para o grupo e verificar se há conteúdo novo
-            # Por segurança, periodicamente entra no grupo e faz scan
-            return True  # Sempre captura para não perder nada
+            # 2. Heurística de proximidade (ID Genérico 'message_count')
+            # Procuramos qualquer elemento que contenha 'count' ou 'badge' em layouts pais da linha
+            row = group_el.up(className="android.widget.RelativeLayout")
+            if not row.exists:
+                row = group_el.up(className="android.view.ViewGroup")
+            
+            if row.exists:
+                # Busca qualquer contador numérico no layout da linha da conversa
+                indicators = row.child(resourceIdMatches=".*count.*|.*badge.*|.*unread.*")
+                if indicators.exists:
+                    text = indicators.get_text()
+                    if text and text.isdigit():
+                        return True
+                
+                # Check visual secundário: bolinha verde sem ID (TextView com conteúdo pequeno)
+                for child in row.child(className="android.widget.TextView"):
+                    txt = child.get_text()
+                    if txt and txt.isdigit() and len(txt) <= 3:
+                        # Verifica se não é o timestamp (0-23, 0-59)
+                        if ":" not in txt:
+                            return True
+            
+            return False
             
         except Exception as e:
             self.log.debug(f"Erro ao verificar badge: {e}")
-            return True  # Na dúvida, captura
+            return False
 
     # -----------------------------------------------------------------------
     # SHUTDOWN
@@ -812,20 +880,32 @@ if __name__ == "__main__":
         default=15,
         help="Intervalo de verificação em segundos para modo listener (padrão: 15)"
     )
+    parser.add_argument(
+        "--serial",
+        type=str,
+        default=DEVICE_SERIAL,
+        help=f"Serial ou IP do dispositivo ADB (padrão: {DEVICE_SERIAL})"
+    )
+    parser.add_argument(
+        "--direcao", 
+        choices=["passado", "futuro"],
+        default="passado",
+        help="Direção do scroll para modo legado: 'passado' (histórico), 'futuro' (novas)"
+    )
     
     args = parser.parse_args()
     
     if args.modo == "export":
         export_csv()
     else:
-        listener = WhatsAppListener(target_groups=args.grupos)
+        listener = WhatsAppListener(target_groups=args.grupos, serial=args.serial)
         
         try:
             if args.modo == "legado":
                 if listener.ensure_app_open():
                     for grupo in args.grupos:
                         if listener.navigate_to_group(grupo):
-                            listener.ingest_legacy(scrolls=args.scrolls)
+                            listener.ingest_legacy(scrolls=args.scrolls, direction=args.direcao)
                             listener.return_to_chat_list()
                         else:
                             listener.log.error(f"Grupo '{grupo}' não encontrado.")
