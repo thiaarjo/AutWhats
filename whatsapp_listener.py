@@ -124,7 +124,8 @@ class WhatsAppListener:
         # Buffer de deduplicação por sequência (Sliding Window)
         # Armazena tuplas (sender, content, timestamp, media_type) da última tela
         self._message_buffer = []
-        self._saved_sequences = set()  # Hashes de sequências já salvas
+        self._saved_sequences = set()
+        self._session_timestamp = datetime.now().strftime("%H:%M")
         
         # Inicializa banco de dados
         self._init_db()
@@ -265,6 +266,9 @@ class WhatsAppListener:
                     time.sleep(2)
                     # Confirma que entrou
                     if self.d(resourceId=IDS["group_name"], text=group_name).exists(timeout=2):
+                        self._message_buffer = [] 
+                        self._session_timestamp = datetime.now().strftime("%H:%M")
+                        self.last_seen_timestamp = self._session_timestamp # Inicia rastreador
                         self.log.info(f"Grupo '{group_name}' aberto com sucesso.")
                         return True
                 self.d.swipe_ext("up", scale=0.5)
@@ -293,7 +297,7 @@ class WhatsAppListener:
     # -----------------------------------------------------------------------
     # CAPTURA DE MENSAGENS E MÍDIA (via XML Hierarchy Parsing)
     # -----------------------------------------------------------------------
-    def scrape_visible_messages(self):
+    def scrape_visible_messages(self, is_scrolling_up=False):
         """
         Varredura inteligente da tela usando parse do XML hierarchy.
         Garante identificação correta do remetente via elemento 'status'.
@@ -353,17 +357,17 @@ class WhatsAppListener:
             self.log.debug(f"Data não parseada: '{raw_text}'")
             return raw_text
 
-    def _parse_messages_from_xml(self, root):
+    def _parse_messages_from_xml(self, root, is_scrolling_up=False):
         """
         Percorre o XML e identifica mensagens por seus resource-ids.
-        Usa Sliding Window para deduplicar: compara a sequência atual
-        com o buffer da tela anterior para encontrar o ponto de sobreposição.
+        Usa Sliding Window bidirecional para deduplicar:
+        - Se subindo (histórico): alinha o final (sufixo) da tela com o início (prefixo) do buffer.
+        - Se descendo (novas): alinha o início (prefixo) da tela com o final (sufixo) do buffer.
         """
         import xml.etree.ElementTree as ET
         count = 0
         
-        # Reinicia o rastreador de timestamp para este scan
-        self.last_seen_timestamp = datetime.now().strftime("%H:%M")
+        # O rastreador last_seen_timestamp PERSISTE entre scans para estabilidade do buffer
         
         # Coleta TODOS os elementos WhatsApp relevantes com suas posições
         all_elements = []
@@ -391,72 +395,88 @@ class WhatsAppListener:
         # Agrupa elementos por proximidade vertical
         message_rows = self._group_elements_by_row(all_elements)
         
-        # 1. Coleta TODAS as mensagens da tela atual como uma SEQUÊNCIA ordenada
-        current_screen = []
+        # 1. Coleta e Limpa as mensagens da tela atual
+        current_screen_raw = []
         for row in message_rows:
             result = self._process_row(row)
             if result:
-                current_screen.append(result)
+                current_screen_raw.append(result)
         
-        if not current_screen:
+        if not current_screen_raw:
             return 0
         
-        # 2. Encontra o ponto de sobreposição com o buffer anterior
-        #    A sobreposição é o maior sufixo do buffer que coincide com um prefixo da tela atual
-        overlap_size = self._find_overlap(self._message_buffer, current_screen)
+        # 2. Processa cada mensagem e verifica se já foi vista NESTA SESSÃO
+        # Usamos um mapa local para saber qual "Oi" estamos vendo na tela atual
+        local_occurrence_counts = {}
         
-        # 3. Salva apenas as mensagens NOVAS (após a sobreposição)
-        new_messages = current_screen[overlap_size:]
+        for msg in current_screen_raw:
+            # (sender, content, timestamp, media_type)
+            msg_key = msg
+            
+            # Indexamos qual ocorrência deste conteúdo é esta mensagem na tela atual
+            current_local_idx = local_occurrence_counts.get(msg_key, 0)
+            local_occurrence_counts[msg_key] = current_local_idx + 1
+            
+            # O ID global da mensagem na sessão é (Key + Local Index + Direção da Scroll Offset?)
+            # Na verdade, basta sabermos se é a N-ésima vez que vemos esse conteúdo na sessão.
+            # Mas espera, se scrolarmos e vermos o mesmo balão, ele deve ter o mesmo ID.
+            
+            # ABORDAGEM FINAL: O buffer acumulativo (Sliding Window) é mantido, mas o overlap
+            # será baseado na sequência pura das 4-tuplas para alinhar as telas.
+            # (Revertendo para a v2.6 corrigida com alinhamento manual)
+            pass
+            
+        # Re-implementação robusta da Janela Deslizante (v2.9)
+        overlap_size = self._find_overlap(self._message_buffer, current_screen_raw, is_scrolling_up)
         
+        if is_scrolling_up:
+            new_messages = current_screen_raw[:len(current_screen_raw) - overlap_size]
+            self._message_buffer = new_messages + self._message_buffer
+        else:
+            new_messages = current_screen_raw[overlap_size:]
+            self._message_buffer.extend(new_messages)
+            
         for msg in new_messages:
             sender, content, timestamp, media_type = msg
-            # Calcula o índice sequencial global desta mensagem
-            # (quantas vezes essa mesma tupla já apareceu no banco)
-            seq_key = f"{self._current_group}|{sender}|{content}|{timestamp}|{media_type}"
-            if seq_key not in self._saved_sequences:
-                self._saved_sequences = set()  # Limita memória: só rastreia sessão atual
-            
-            # Conta ocorrências anteriores no DB para este exato conteúdo
+            # Unicidade no banco (MD5 hash de 5-tupla)
             try:
                 cursor = self.conn.execute(
                     "SELECT COUNT(*) FROM messages WHERE group_name=? AND sender=? AND content=? AND timestamp_str=? AND media_type=?",
                     (self._current_group, sender, content, timestamp, media_type)
                 )
-                existing_count = cursor.fetchone()[0]
-            except Exception:
-                existing_count = 0
+                db_count = cursor.fetchone()[0]
+            except:
+                db_count = 0
             
-            seq_index = existing_count  # Próximo índice disponível
-            
-            if self.save_message(sender, content, timestamp, media_type, seq_index):
+            if self.save_message(sender, content, timestamp, media_type, db_count):
                 count += 1
                 self.log.info(f"[{media_type.upper()}] {sender}: {content[:40]}... ({timestamp})")
         
-        # 4. Atualiza o buffer para o próximo scroll
-        self._message_buffer = current_screen
-        
+        if len(self._message_buffer) > 200:
+            self._message_buffer = self._message_buffer[:200] if is_scrolling_up else self._message_buffer[-200:]
+            
         return count
     
-    def _find_overlap(self, buffer, current):
+    def _find_overlap(self, buffer, current, is_scrolling_up=False):
         """
-        Encontra o maior sufixo de 'buffer' que coincide com um prefixo de 'current'.
-        Retorna o tamanho da sobreposição.
+        Encontra o maior sufixo de um que coincida com o prefixo do outro.
+        v2.9: Strict suffix/prefix matching mas procura a maior coincidência possível no buffer.
         """
         if not buffer or not current:
             return 0
         
-        max_overlap = min(len(buffer), len(current))
+        len_c = len(current)
+        max_possible = min(len(buffer), len_c)
         
-        for size in range(max_overlap, 0, -1):
-            # Compara o sufixo do buffer (últimos 'size' itens)
-            # com o prefixo do current (primeiros 'size' itens)
-            suffix = buffer[-size:]
-            prefix = current[:size]
-            
-            if suffix == prefix:
-                self.log.debug(f"Overlap de {size} mensagens detectado entre telas.")
-                return size
-        
+        for size in range(max_possible, 0, -1):
+            if is_scrolling_up:
+                # Subindo: suffix(current) == prefix(buffer)
+                if current[-size:] == buffer[:size]:
+                    return size
+            else:
+                # Descendo: suffix(buffer) == prefix(current)
+                if buffer[-size:] == current[:size]:
+                    return size
         return 0
 
     def _parse_bounds(self, bounds_str):
@@ -703,14 +723,15 @@ class WhatsAppListener:
         """
         self.log.info(f"Ingestão de legado: {scrolls} scrolls na direção '{direction}'.")
         total = 0
-        # 'passado' = arrastar para BAIXO (swipe down)
-        # 'futuro' = arrastar para CIMA (swipe up)
+        # 'passado' = arrastar para BAIXO (swipe down) para subir no histórico
+        # 'futuro' = arrastar para CIMA (swipe up) para descer no histórico
         swipe_dir = "down" if direction == "passado" else "up"
+        is_scrolling_up = (direction == "passado")
         
         for i in range(scrolls):
             if not self.running:
                 break
-            found = self.scrape_visible_messages()
+            found = self.scrape_visible_messages(is_scrolling_up=is_scrolling_up)
             total += found
             self.log.info(f"Scroll {i+1}/{scrolls} - {found} novas neste scroll, {total} total.")
             
@@ -773,7 +794,7 @@ class WhatsAppListener:
                             no_new_consecutive = 0
                             
                             while no_new_consecutive < 2 and self.running:
-                                found = self.scrape_visible_messages()
+                                found = self.scrape_visible_messages(is_scrolling_up=False)
                                 if found > 0:
                                     total_new_in_session += found
                                     no_new_consecutive = 0
