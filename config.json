@@ -1,0 +1,10 @@
+{
+  "modo": "auto",
+  "grupos": [
+    "Teste",
+    "Teste2"
+  ],
+  "gatilhos": "{\"Teste\": [\"Th\"]}",
+  "intervalo": 10,
+  "serial": "192.168.0.254:33325"
+}

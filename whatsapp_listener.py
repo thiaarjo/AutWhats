@@ -17,6 +17,7 @@ import os
 import sys
 import signal
 import logging
+import xml.etree.ElementTree as ET
 from datetime import datetime, date
 
 # ============================================================================
@@ -44,6 +45,7 @@ IDS = {
     "main_layout":      "com.whatsapp.w4b:id/main_layout",
     "status":           "com.whatsapp.w4b:id/status",
     "info":             "com.whatsapp.w4b:id/info",
+    "unread_badge":     "com.whatsapp.w4b:id/conversations_row_message_count",
 }
 
 # ============================================================================
@@ -122,10 +124,11 @@ class WhatsAppListener:
         self.running = True
         
         # Buffer de deduplicação por sequência (Sliding Window)
-        # Armazena tuplas (sender, content, timestamp, media_type) da última tela
+        # Armazena tuplas (sender, content, timestamp, media_type, date) da última tela
         self._message_buffer = []
         self._saved_sequences = set()
         self._session_timestamp = datetime.now().strftime("%H:%M")
+        self.last_seen_timestamp = self._session_timestamp
         
         # Inicializa banco de dados
         self._init_db()
@@ -178,14 +181,14 @@ class WhatsAppListener:
             self.log.critical(f"Erro fatal no banco de dados: {e}")
             raise
 
-    def save_message(self, sender, content, timestamp, media_type="text", seq_index=0):
+    def save_message(self, sender, content, timestamp, message_date, media_type="text", seq_index=0):
         """Salva uma mensagem no banco com deduplicação por hash + índice sequencial."""
-        msg_id = self._hash(sender, content, timestamp, media_type, seq_index)
+        msg_id = self._hash(sender, content, timestamp, message_date, media_type, seq_index)
         try:
             self.conn.execute(
                 "INSERT INTO messages (id, group_name, sender, content, media_type, timestamp_str, message_date) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (msg_id, self._current_group, sender, content, media_type, timestamp, self.current_date)
+                (msg_id, self._current_group, sender, content, media_type, timestamp, message_date)
             )
             self.conn.commit()
             return True
@@ -195,8 +198,8 @@ class WhatsAppListener:
             self.log.error(f"Erro ao salvar mensagem: {e}")
             return False
 
-    def _hash(self, sender, content, timestamp, media_type, seq_index=0):
-        """Gera hash MD5 único para deduplicação. Inclui índice sequencial."""
+    def _hash(self, sender, content, timestamp, message_date, media_type, seq_index=0):
+        """Gera hash MD5 único para deduplicação. NÃO inclui message_date (instável entre sessões)."""
         data = f"{self._current_group}|{sender}|{content}|{timestamp}|{media_type}|{seq_index}".encode('utf-8')
         return hashlib.md5(data).hexdigest()
 
@@ -315,18 +318,8 @@ class WhatsAppListener:
             xml_str = self.d.dump_hierarchy()
             root = ET.fromstring(xml_str)
             
-            # 3. Atualizar data via divisores
-            for node in root.iter('node'):
-                rid = node.get('resource-id', '')
-                if rid == IDS["date_divider"]:
-                    raw_date = node.get('text', '')
-                    if raw_date:
-                        parsed = self._parse_date_divider(raw_date)
-                        if parsed:
-                            self.current_date = parsed
-            
-            # 4. Processar cada mensagem encontrando blocos de conteúdo
-            messages_found += self._parse_messages_from_xml(root)
+            # 3. Processar cada mensagem encontrando blocos de conteúdo
+            messages_found += self._parse_messages_from_xml(root, is_scrolling_up)
             
         except Exception as e:
             self.log.error(f"Erro durante varredura XML: {e}")
@@ -360,14 +353,10 @@ class WhatsAppListener:
     def _parse_messages_from_xml(self, root, is_scrolling_up=False):
         """
         Percorre o XML e identifica mensagens por seus resource-ids.
-        Usa Sliding Window bidirecional para deduplicar:
-        - Se subindo (histórico): alinha o final (sufixo) da tela com o início (prefixo) do buffer.
-        - Se descendo (novas): alinha o início (prefixo) da tela com o final (sufixo) do buffer.
+        Usa Sliding Window bidirecional para determinar quais são as NOVAS.
         """
         import xml.etree.ElementTree as ET
         count = 0
-        
-        # O rastreador last_seen_timestamp PERSISTE entre scans para estabilidade do buffer
         
         # Coleta TODOS os elementos WhatsApp relevantes com suas posições
         all_elements = []
@@ -380,7 +369,6 @@ class WhatsAppListener:
             text = node.get('text', '')
             desc = node.get('content-desc', '')
             bounds_str = node.get('bounds', '')
-            
             bounds = self._parse_bounds(bounds_str)
             
             all_elements.append({
@@ -395,38 +383,36 @@ class WhatsAppListener:
         # Agrupa elementos por proximidade vertical
         message_rows = self._group_elements_by_row(all_elements)
         
-        # 1. Coleta e Limpa as mensagens da tela atual
+        # 1. Coleta mensagens da tela atual com rastreamento dinâmico de data
         current_screen_raw = []
+        active_date = self.current_date
+        
         for row in message_rows:
+            # Verifica se esta linha é um divisor de data
+            is_divider = False
+            for el in row:
+                if el['rid'] == 'conversation_row_date_divider':
+                    raw_text = el['text']
+                    if raw_text:
+                        active_date = self._parse_date_divider(raw_text)
+                        self.current_date = active_date # Atualiza o global tb
+                        is_divider = True
+                        break
+            
+            if is_divider:
+                continue
+                
+            # Processa linha de mensagem
             result = self._process_row(row)
             if result:
-                current_screen_raw.append(result)
+                sender, content, timestamp, media_type = result
+                # Criamos a 5-tupla estável (incluindo a data ativa no momento)
+                current_screen_raw.append((sender, content, timestamp, media_type, active_date))
         
         if not current_screen_raw:
             return 0
         
-        # 2. Processa cada mensagem e verifica se já foi vista NESTA SESSÃO
-        # Usamos um mapa local para saber qual "Oi" estamos vendo na tela atual
-        local_occurrence_counts = {}
-        
-        for msg in current_screen_raw:
-            # (sender, content, timestamp, media_type)
-            msg_key = msg
-            
-            # Indexamos qual ocorrência deste conteúdo é esta mensagem na tela atual
-            current_local_idx = local_occurrence_counts.get(msg_key, 0)
-            local_occurrence_counts[msg_key] = current_local_idx + 1
-            
-            # O ID global da mensagem na sessão é (Key + Local Index + Direção da Scroll Offset?)
-            # Na verdade, basta sabermos se é a N-ésima vez que vemos esse conteúdo na sessão.
-            # Mas espera, se scrolarmos e vermos o mesmo balão, ele deve ter o mesmo ID.
-            
-            # ABORDAGEM FINAL: O buffer acumulativo (Sliding Window) é mantido, mas o overlap
-            # será baseado na sequência pura das 4-tuplas para alinhar as telas.
-            # (Revertendo para a v2.6 corrigida com alinhamento manual)
-            pass
-            
-        # Re-implementação robusta da Janela Deslizante (v2.9)
+        # 2. Re-implementação robusta da Janela Deslizante (Overlap)
         overlap_size = self._find_overlap(self._message_buffer, current_screen_raw, is_scrolling_up)
         
         if is_scrolling_up:
@@ -436,26 +422,45 @@ class WhatsAppListener:
             new_messages = current_screen_raw[overlap_size:]
             self._message_buffer.extend(new_messages)
             
+        # 3. Salva no banco com deduplicação real via Hash MD5 (estável entre sessões)
+        # Track local occurrences in the entire session buffer for stable seq_index
         for msg in new_messages:
-            sender, content, timestamp, media_type = msg
-            # Unicidade no banco (MD5 hash de 5-tupla)
-            try:
-                cursor = self.conn.execute(
-                    "SELECT COUNT(*) FROM messages WHERE group_name=? AND sender=? AND content=? AND timestamp_str=? AND media_type=?",
-                    (self._current_group, sender, content, timestamp, media_type)
-                )
-                db_count = cursor.fetchone()[0]
-            except:
-                db_count = 0
+            sender, content, timestamp, media_type, msg_date = msg
             
-            if self.save_message(sender, content, timestamp, media_type, db_count):
-                count += 1
-                self.log.info(f"[{media_type.upper()}] {sender}: {content[:40]}... ({timestamp})")
+            # Conta quantas vezes este conteúdo exato apareceu no buffer ATÉ AGORA
+            occurrence_in_session = 0
+            for prev_msg in self._message_buffer:
+                if prev_msg == msg:
+                    occurrence_in_session += 1
+                if prev_msg is msg: # Chegou nele mesmo
+                    break
+            
+            # O seq_index é a ocorrência (0, 1, 2...) ajustada pelo que já existe no banco
+            # para evitar colisões, mas aqui usamos a ocorrência da sessão como base.
+            # v3.0: O hash agora é DETERMINÍSTICO baseando-se na posição na sequência vista.
+            seq_index = occurrence_in_session - 1
+            
+            msg_id = self._hash(sender, content, timestamp, msg_date, media_type, seq_index)
+            
+            if not self._check_id_exists(msg_id):
+                if self.save_message(sender, content, timestamp, msg_date, media_type, seq_index):
+                    count += 1
+                    self.log.info(f"[{media_type.upper()}] {sender}: {content[:40]}... ({timestamp})")
+            else:
+                self.log.debug(f"Mensagem já existe: {sender} - {content[:20]} ({msg_date} {timestamp})")
         
         if len(self._message_buffer) > 200:
             self._message_buffer = self._message_buffer[:200] if is_scrolling_up else self._message_buffer[-200:]
             
         return count
+
+    def _check_id_exists(self, msg_id):
+        """Verifica se um ID (Hash) já existe no banco de dados."""
+        try:
+            cursor = self.conn.execute("SELECT 1 FROM messages WHERE id = ?", (msg_id,))
+            return cursor.fetchone() is not None
+        except Exception:
+            return False
     
     def _find_overlap(self, buffer, current, is_scrolling_up=False):
         """
@@ -719,155 +724,116 @@ class WhatsAppListener:
     def ingest_legacy(self, scrolls=5, direction="passado"):
         """
         Sobe ou desce a conversa para capturar mensagens antigas (histórico).
-        direction: 'passado' (vê o que veio antes) ou 'futuro' (vê o que veio depois)
+        Para automaticamente se ficar 3 scrolls sem encontrar mensagens novas.
+        Usa 'swipe reforçado' quando detecta scrolls vazios para garantir que a tela mudou.
         """
-        self.log.info(f"Ingestão de legado: {scrolls} scrolls na direção '{direction}'.")
+        self.log.info(f"Ingestão de legado iniciada: {'infinito (smart-stop)' if scrolls == -1 else scrolls} scrolls na direção '{direction}'.")
         total = 0
-        # 'passado' = arrastar para BAIXO (swipe down) para subir no histórico
-        # 'futuro' = arrastar para CIMA (swipe up) para descer no histórico
         swipe_dir = "down" if direction == "passado" else "up"
         is_scrolling_up = (direction == "passado")
         
-        for i in range(scrolls):
+        # -1 significa scroll infinito até o critério de parada
+        limit = 999999 if scrolls == -1 else scrolls
+        no_new_consecutive = 0
+        MAX_EMPTY = 3  # Scrolls consecutivos sem novidade antes de parar
+        
+        for i in range(limit):
             if not self.running:
                 break
+                
             found = self.scrape_visible_messages(is_scrolling_up=is_scrolling_up)
             total += found
-            self.log.info(f"Scroll {i+1}/{scrolls} - {found} novas neste scroll, {total} total.")
             
-            # Executa o scroll
-            self.d.swipe_ext(swipe_dir, scale=0.8)
-            time.sleep(1.5)
-        
-        self.log.info(f"Ingestão de legado concluída: {total} mensagens capturadas.")
-        return total
-
-    # -----------------------------------------------------------------------
-    # MODO LISTENER (GATILHO AUTOMÁTICO)
-    # -----------------------------------------------------------------------
-    def listen(self, interval=10):
-        """
-        Modo Listener: monitora continuamente a lista de conversas e
-        captura mensagens novas quando detecta atividade.
-        
-        Args:
-            interval: Segundos entre cada verificação (padrão: 10)
-        """
-        self.log.info("=" * 60)
-        self.log.info(f"MODO LISTENER ATIVADO - Intervalo: {interval}s")
-        self.log.info(f"Monitorando {len(self.target_groups)} grupo(s)")
-        self.log.info("Pressione Ctrl+C para encerrar.")
-        self.log.info("=" * 60)
-        
-        cycle = 0
-        while self.running:
-            cycle += 1
-            self.log.debug(f"--- Ciclo de monitoramento #{cycle} ---")
-            
-            try:
-                # Garante que o app está aberto
-                if not self.ensure_app_open():
-                    self.log.error("App não disponível. Aguardando próximo ciclo...")
-                    time.sleep(interval * 2)
-                    continue
+            if found > 0:
+                no_new_consecutive = 0
+                self.log.info(f"Scroll {i+1} - {found} novas mensagens capturadas.")
+            else:
+                no_new_consecutive += 1
+                self.log.info(f"Scroll {i+1} - Sem novidades ({no_new_consecutive}/{MAX_EMPTY} para parada).")
                 
-                # Para cada grupo alvo
-                for group in self.target_groups:
-                    if not self.running:
-                        break
-                    
-                    self._current_group = group
-                    
-                    # Verifica se há mensagens não lidas (badge) ou se é hora de Force Scan
-                    has_unread = self._check_unread_badge(group)
-                    is_force_scan = (cycle % 5 == 0) # Force scan a cada 5 ciclos (~1.5 min)
-                    
-                    if has_unread or is_force_scan:
-                        if is_force_scan and not has_unread:
-                            self.log.info(f"🔍 Executando Force Scan periódico em '{group}'...")
-                        else:
-                            self.log.info(f"🔔 Mensagens novas detectadas em '{group}'!")
-                        
-                        if self.navigate_to_group(group):
-                            # Loop de captura com scroll para garantir que pegamos tudo
-                            total_new_in_session = 0
-                            no_new_consecutive = 0
-                            
-                            while no_new_consecutive < 2 and self.running:
-                                found = self.scrape_visible_messages(is_scrolling_up=False)
-                                if found > 0:
-                                    total_new_in_session += found
-                                    no_new_consecutive = 0
-                                    # Desliza o dedo para CIMA para rolar a conversa para BAIXO (mais novas)
-                                    self.log.debug("Rolando para baixo para buscar mais mensagens novas...")
-                                    self.d.swipe_ext("up", scale=0.7)
-                                    time.sleep(1.5)
-                                else:
-                                    no_new_consecutive += 1
-                                    if no_new_consecutive < 2:
-                                        # Pequeno scroll adicional para garantir que não parou no meio de um balão
-                                        self.d.swipe_ext("up", scale=0.3)
-                                        time.sleep(1)
-                            
-                            if total_new_in_session > 0:
-                                self.log.info(f"Sessão de captura em '{group}' finalizada. Total: {total_new_in_session}")
-                            self.return_to_chat_list()
-                        else:
-                            self.log.warning(f"Não foi possível entrar no grupo '{group}'.")
-                    else:
-                        self.log.debug(f"Sem novidades em '{group}'.")
-                
-            except Exception as e:
-                self.log.error(f"Erro no ciclo #{cycle}: {e}")
-            
-            # Aguarda próximo ciclo
-            for _ in range(interval):
-                if not self.running:
+                if no_new_consecutive >= MAX_EMPTY:
+                    self.log.info(f"Parada automática: {MAX_EMPTY} scrolls consecutivos sem mensagens novas.")
                     break
-                time.sleep(1)
-        
-        self.log.info("Listener encerrado de forma limpa.")
+            
+            # Executa o scroll — se estiver sem novidades, usa swipe mais forte
+            if no_new_consecutive > 0:
+                # Swipe reforçado: mais longo para tentar revelar conteúdo novo
+                self.d.swipe_ext(swipe_dir, scale=0.9)
+                time.sleep(2)
+            else:
+                self.d.swipe_ext(swipe_dir, scale=0.8)
 
     def _check_unread_badge(self, group_name):
         """
-        Verifica se há badge de mensagens não lidas no grupo de forma ultra-agressiva.
+        Verifica se há badge de mensagens não lidas para um grupo na lista de conversas.
+        Retorna o número de mensagens não lidas (int). 0 = sem novidades.
+        Utiliza parse estruturado do XML e busca difusa por similaridade.
         """
         try:
-            # 1. Busca a entrada do grupo (ignora fuxicos Unicode)
-            group_el = self.d(text=group_name)
-            if not group_el.exists:
-                # Tenta busca parcial se o nome oficial falhar
-                group_el = self.d(textContains=group_name)
-                if not group_el.exists:
-                    return False
+            xml_str = self.d.dump_hierarchy()
+            root = ET.fromstring(xml_str)
             
-            # 2. Heurística de proximidade (ID Genérico 'message_count')
-            # Procuramos qualquer elemento que contenha 'count' ou 'badge' em layouts pais da linha
-            row = group_el.up(className="android.widget.RelativeLayout")
-            if not row.exists:
-                row = group_el.up(className="android.view.ViewGroup")
+            # 1. Localiza o nó do grupo
+            target_node = None
+            for node in root.iter('node'):
+                txt = (node.get('text', '') or '').strip()
+                # Busca flexível: nome exato, com LTR, ou contido no texto
+                if group_name == txt or group_name == txt.replace('\u200e', '') or group_name.lower() in txt.lower():
+                    target_node = node
+                    break
             
-            if row.exists:
-                # Busca qualquer contador numérico no layout da linha da conversa
-                indicators = row.child(resourceIdMatches=".*count.*|.*badge.*|.*unread.*")
-                if indicators.exists:
-                    text = indicators.get_text()
-                    if text and text.isdigit():
-                        return True
+            if target_node is None:
+                # Opcional: dump para debug se falhar
+                with open("last_node_search_fail.xml", "w", encoding="utf-8") as f:
+                    f.write(xml_str)
+                return 0
+
+            # 2. Mapeia a árvore para subir níveis (Ancestrais)
+            parent_map = {c: p for p in root.iter() for c in p}
+            
+            curr = target_node
+            # Sobe até 5 níveis (o container da linha costuma ser o nível 2 ou 3)
+            for _ in range(5):
+                parent = parent_map.get(curr)
+                if parent is None: break
                 
-                # Check visual secundário: bolinha verde sem ID (TextView com conteúdo pequeno)
-                for child in row.child(className="android.widget.TextView"):
-                    txt = child.get_text()
-                    if txt and txt.isdigit() and len(txt) <= 3:
-                        # Verifica se não é o timestamp (0-23, 0-59)
-                        if ":" not in txt:
-                            return True
-            
-            return False
+                # Procura o badge de forma difusa em qualquer descendente deste container
+                for sub in parent.iter('node'):
+                    rid = sub.get('resource-id', '')
+                    text = sub.get('text', '')
+                    desc = sub.get('content-desc', '').lower()
+                    
+                    # Critério 1: ID conhecido do Weditor ou palavras-chave no ID
+                    has_id = any(k in rid.lower() for k in ['count', 'badge', 'unread'])
+                    # Critério 2: Texto numérico curto (badge visual)
+                    is_numeric = text and text.isdigit() and len(text) <= 3
+                    # Critério 3: Descrição de acessibilidade
+                    has_desc = 'não lidas' in desc or 'unread' in desc
+                    
+                    if has_id or is_numeric or has_desc:
+                        # Tenta pegar do texto primeiro
+                        if text and text.isdigit():
+                            count = int(text)
+                        else:
+                            # Tenta extrair número do content-desc (ex: "Mensagem não lida: 1")
+                            import re
+                            nums = re.findall(r'\d+', desc or '')
+                            count = int(nums[0]) if nums else 0
+                            
+                        if count > 0:
+                            self.log.info(f"Badge detectado em '{group_name}': {count} nova(s).")
+                            return count
+                curr = parent
+
+            # Se chegou aqui, não achou badge nos ancestrais
+            with open("last_badge_search_fail.xml", "w", encoding="utf-8") as f:
+                f.write(xml_str)
+            return 0
             
         except Exception as e:
-            self.log.debug(f"Erro ao verificar badge: {e}")
-            return False
+            self.log.debug(f"Erro ao verificar badge XML de '{group_name}': {e}")
+            return 0
+
 
     # -----------------------------------------------------------------------
     # SHUTDOWN
@@ -909,6 +875,7 @@ def export_csv():
         return
     query = """
         SELECT 
+            id AS ID,
             group_name AS Grupo,
             sender AS Remetente,
             content AS Conteudo,
@@ -930,78 +897,119 @@ def export_csv():
         print(df['Tipo_Midia'].value_counts().to_string())
 
 
+def load_config():
+    """Carrega as configurações de um arquivo JSON se existir."""
+    config_path = os.path.join(BASE_DIR, "config.json")
+    if os.path.exists(config_path):
+        import json
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Erro ao carregar config.json: {e}")
+    return {}
+
 # ============================================================================
 # PONTO DE ENTRADA
 # ============================================================================
 if __name__ == "__main__":
     import argparse
+    import json
+    
+    config = load_config()
     
     parser = argparse.ArgumentParser(
-        description="WhatsApp Business Listener - Captura automática de mensagens"
+        description="AutWhats - Automação Inteligente de WhatsApp Business"
     )
     parser.add_argument(
         "--grupos", 
         nargs="+", 
-        default=["Teste"],
-        help="Nome(s) do(s) grupo(s) alvo (padrão: 'Teste')"
+        default=config.get("grupos", ["Teste"]),
+        help="Nome(s) do(s) grupo(s) alvo"
     )
     parser.add_argument(
         "--modo", 
-        choices=["listener", "legado", "export"],
-        default="listener",
-        help="Modo de operação: 'listener' (gatilho), 'legado' (histórico), 'export' (CSV)"
+        choices=["auto", "listener", "legado", "export"],
+        default=config.get("modo", "auto"),
+        help="Modo: 'auto' (Gatilhos), 'listener' (Legado), 'export' (CSV)"
+    )
+    # Nota: No argparse mudei o nome 'listener' interno para 'auto' para o novo modo
+    
+    parser.add_argument(
+        "--gatilhos",
+        type=str,
+        default=config.get("gatilhos", ""),
+        help="Gatilhos JSON. Ex: '{\"Grupo\": [\"Pessoa1\"]}'"
+    )
+    parser.add_argument(
+        "--intervalo", 
+        type=int, 
+        default=config.get("intervalo", 15),
+        help="Segundos entre verificações em modo Standby"
     )
     parser.add_argument(
         "--scrolls", 
         type=int, 
         default=5,
-        help="Quantidade de scrolls para modo legado (padrão: 5)"
-    )
-    parser.add_argument(
-        "--intervalo", 
-        type=int, 
-        default=15,
-        help="Intervalo de verificação em segundos para modo listener (padrão: 15)"
+        help="Scrolls no modo legado"
     )
     parser.add_argument(
         "--serial",
         type=str,
-        default=DEVICE_SERIAL,
-        help=f"Serial ou IP do dispositivo ADB (padrão: {DEVICE_SERIAL})"
-    )
-    parser.add_argument(
-        "--direcao", 
-        choices=["passado", "futuro"],
-        default="passado",
-        help="Direção do scroll para modo legado: 'passado' (histórico), 'futuro' (novas)"
+        default=config.get("serial", DEVICE_SERIAL),
+        help=f"Serial ADB (padrão: {DEVICE_SERIAL})"
     )
     
     args = parser.parse_args()
     
+    # Processa gatilhos
+    
     if args.modo == "export":
         export_csv()
-    else:
+    elif args.modo in ["auto", "listener"]:
+        # ── Modo Contínuo: monitora múltiplos grupos via badge ──
         listener = WhatsAppListener(target_groups=args.grupos, serial=args.serial)
-        
         try:
-            if args.modo == "legado":
-                if listener.ensure_app_open():
+            if listener.ensure_app_open():
+                listener.log.info(f"Modo AUTO ativo — monitorando {len(args.grupos)} grupo(s): {', '.join(args.grupos)}")
+                listener.log.info(f"Intervalo entre ciclos: {args.intervalo}s")
+                
+                while listener.running:
+                    # Garante que estamos na lista de conversas
+                    listener.return_to_chat_list()
+                    time.sleep(1)
+                    
+                    listener.log.debug(f"Ciclo iniciado para grupos: {args.grupos}")
                     for grupo in args.grupos:
-                        if listener.navigate_to_group(grupo):
-                            listener.ingest_legacy(scrolls=args.scrolls, direction=args.direcao)
-                            listener.return_to_chat_list()
+                        if not listener.running:
+                            break
+                        
+                        unread = listener._check_unread_badge(grupo)
+                        
+                        if unread > 0:
+                            listener.log.info(f">>> {unread} nova(s) em '{grupo}' — entrando para captura...")
+                            if listener.navigate_to_group(grupo):
+                                listener.scrape_visible_messages(is_scrolling_up=False)
+                                listener.return_to_chat_list()
+                                time.sleep(1)
                         else:
-                            listener.log.error(f"Grupo '{grupo}' não encontrado.")
-                    listener.log.info("Processo de legado concluído.")
-                else:
-                    listener.log.critical("Impossível iniciar: app não encontrado.")
-            
-            elif args.modo == "listener":
-                if listener.ensure_app_open():
-                    listener.listen(interval=args.intervalo)
-                else:
-                    listener.log.critical("Impossível iniciar: app não encontrado.")
+                            listener.log.debug(f"Sem novidades em '{grupo}'")
+                    
+                    if listener.running:
+                        listener.log.debug(f"Ciclo concluído. Aguardando {args.intervalo}s...")
+                        time.sleep(args.intervalo)
         finally:
-            # Fecha a conexão ANTES de exportar
+            listener.close()
+            export_csv()
+    elif args.modo == "legado":
+        # ── Modo Legado: captura histórico profundo via scroll ──
+        listener = WhatsAppListener(target_groups=args.grupos, serial=args.serial)
+        try:
+            if listener.ensure_app_open():
+                for grupo in args.grupos:
+                    if listener.navigate_to_group(grupo):
+                        listener.ingest_legacy(scrolls=args.scrolls)
+                        listener.return_to_chat_list()
+        finally:
             listener.close()
             export_csv()

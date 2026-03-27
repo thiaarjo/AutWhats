@@ -1,0 +1,524 @@
+
+  Current Notification Manager state:
+    Notification List:
+>     NotificationRecord(0x0f9c6310: pkg=com.whatsapp.w4b user=UserHandle{0} id=1 tag=null importance=2 key=0|com.whatsapp.w4b|1|null|10290: Notification(channel=silent_notifications_3 shortcut=120363407369159074@g.us contentView=null vibrate=null sound=null tick defaults=0x0 flags=0x200 color=0xff21c063 category=msg groupKey=group_key_messages vis=PRIVATE publicVersion=Notification(channel=null shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x0 color=0xff21c063 category=msg vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0) semFlags=0x0 semPriority=0 semMissedCount=0))
+        uid=10290 userId=0
+>       opPkg=com.whatsapp.w4b
+>       icon=Icon(typ=RESOURCE pkg=com.whatsapp.w4b id=0x7f080317)
+        flags=0x200
+        originalFlags=0x200
+        pri=0
+>       key=0|com.whatsapp.w4b|1|null|10290
+        seen=false
+>       groupKey=0|com.whatsapp.w4b|g:group_key_messages
+        notification=
+              fullscreenIntent=null
+>             contentIntent=PendingIntent{a253e09: PendingIntentRecord{70faf0d com.whatsapp.w4b startActivity (allowlist: 6fb1859:+30s0ms/0/NOTIFICATION_SERVICE/NotificationManagerService)}}
+>             deleteIntent=PendingIntent{eb8580e: PendingIntentRecord{6952f09 com.whatsapp.w4b broadcastIntent (allowlist: 6fb1859:+30s0ms/0/NOTIFICATION_SERVICE/NotificationManagerService)}}
+              number=3
+              groupAlertBehavior=1
+              when=1774472586531
+              tickerText=Mensagem...
+              contentView=null
+              bigContentView=null
+              headsUpContentView=null
+              color=0xff21c063
+              timeout=unknown
+              parcelDataSize=7124
+              mAllowSystemGeneratedContextualActions=true
+              extras={
+                  android.title=String [length=5]
+                  android.reduced.images=Boolean (true)
+                  android.textLines=CharSequence[] (3)
+                  android.subText=null
+                  android.template=String (android.app.Notification$InboxStyle)
+                  android.showChronometer=Boolean (false)
+                  android.text=String [length=18]
+                  android.progress=Integer (0)
+                  androidx.core.app.extra.COMPAT_TEMPLATE=String [length=47]
+                  android.progressMax=Integer (0)
+>                 android.appInfo=ApplicationInfo (ApplicationInfo{825f22f com.whatsapp.w4b})
+                  android.showWhen=Boolean (true)
+                  android.largeIcon=null
+                  android.infoText=null
+                  android.progressIndeterminate=Boolean (false)
+                  android.remoteInputHistory=null
+                  android.summaryText=String [length=18]
+              }
+        publicNotification=
+              fullscreenIntent=null
+              contentIntent=null
+              deleteIntent=null
+              number=0
+              groupAlertBehavior=0
+              when=1774472586531
+              tickerText=null
+              contentView=null
+              bigContentView=null
+              headsUpContentView=null
+              color=0xff21c063
+              timeout=unknown
+              parcelDataSize=3180
+              mAllowSystemGeneratedContextualActions=true
+              extras={
+                  android.title=String [length=11]
+                  android.reduced.images=Boolean (true)
+                  android.subText=null
+                  android.showChronometer=Boolean (false)
+                  android.text=String [length=18]
+                  android.progress=Integer (0)
+                  android.progressMax=Integer (0)
+>                 android.appInfo=ApplicationInfo (ApplicationInfo{74ca03c com.whatsapp.w4b})
+                  android.showWhen=Boolean (true)
+                  android.largeIcon=null
+                  android.infoText=null
+                  android.progressIndeterminate=Boolean (false)
+                  android.remoteInputHistory=null
+              }
+        stats=SingleNotificationStats{posttimeElapsedMs=2280399019, posttimeToFirstClickMs=-1, posttimeToDismissMs=-1, airtimeCount=0, airtimeMs=0, currentAirtimeStartElapsedMs=-1, airtimeExpandedMs=0, posttimeToFirstVisibleExpansionMs=-1, currentAirtimeExpandedStartElapsedMs=-1, requestedImportance=3, naturalImportance=2, isNoisy=false}
+        mContactAffinity=0.0
+        mRecentlyIntrusive=false
+        mPackagePriority=0
+        mPackageVisibility=-1000
+        mSystemImportance=UNSPECIFIED
+        mAsstImportance=UNSPECIFIED
+        mImportance=LOW
+        mImportanceExplanation=app
+        mIsAppImportanceLocked=true
+        mIntercept=false
+        mHidden==false
+        mGlobalSortKey=crtcl=0x0002:intrsv=1:grnk=0x0000:gsmry=0:nsk:rnk=0x0004
+        mRankingTimeMs=1774472586531(2026-03-25 18:03:06.531-0300)
+        mCreationTimeMs=1774472569740(2026-03-25 18:02:49.740-0300)
+        mVisibleSinceMs=0(1969-12-31 21:00:00.000-0300)
+        mUpdateTimeMs=1774472586565(2026-03-25 18:03:06.565-0300)
+        mInterruptionTimeMs=1774472586565(2026-03-25 18:03:06.565-0300)
+        mSuppressedVisualEffects= 0
+        mSound= null
+        mVibration= null
+        mAttributes= AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null
+        mLight= null
+        mShowBadge=true
+        mColorized=false
+        mAllowBubble=false
+        isBubble=false
+        mIsInterruptive=false
+        effectiveNotificationChannel=NotificationChannel{mId='silent_notifications_3', mName=Notifica├º├Áes silenciadas, mDescription=, mImportance=2, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=null, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=false, mOriginalImp=2, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+        mAdjustments=[]
+        shortcut=120363407369159074@g.us found valid? true
+        mSuggestionsGeneratedByAssistant=false
+>     NotificationRecord(0x0313c955: pkg=com.whatsapp.w4b user=UserHandle{0} id=1 tag=8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+>  importance=4 key=0|com.whatsapp.w4b|1|8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+  |10290: Notification(channel=group_chat_defaults_2 shortcut=120363407369159074@g.us contentView=null vibrate=null sound=null defaults=0x0 flags=0x8 color=0xff21c063 groupKey=group_key_messages sortKey=001 actions=3 vis=PRIVATE publicVersion=Notification(channel=null shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x0 color=0xff21c063 category=msg vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0) semFlags=0x0 semPriority=0 semMissedCount=0))
+        uid=10290 userId=0
+>       opPkg=com.whatsapp.w4b
+>       icon=Icon(typ=RESOURCE pkg=com.whatsapp.w4b id=0x7f080317)
+        flags=0x8
+        originalFlags=0x8
+        pri=0
+>       key=0|com.whatsapp.w4b|1|8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+  |10290
+        seen=false
+>       groupKey=0|com.whatsapp.w4b|g:group_key_messages
+        notification=
+              fullscreenIntent=null
+>             contentIntent=PendingIntent{382cf6a: PendingIntentRecord{70faf0d com.whatsapp.w4b startActivity (allowlist: 6fb1859:+30s0ms/0/NOTIFICATION_SERVICE/NotificationManagerService)}}
+>             deleteIntent=PendingIntent{fe0cc5b: PendingIntentRecord{81b76d1 com.whatsapp.w4b broadcastIntent (allowlist: 6fb1859:+30s0ms/0/NOTIFICATION_SERVICE/NotificationManagerService)}}
+              number=3
+              groupAlertBehavior=1
+              when=1774472586000
+              tickerText=null
+              contentView=null
+              bigContentView=null
+              headsUpContentView=null
+              color=0xff21c063
+              timeout=unknown
+              parcelDataSize=12252
+              mAllowSystemGeneratedContextualActions=true
+              actions={
+>                 [0] "Responder" -> PendingIntent{a5cecf8: PendingIntentRecord{edb8c37 com.whatsapp.w4b startService (allowlist: 6fb1859:+30s0ms/0/NOTIFICATION_SERVICE/NotificationManagerService)}}
+>                 [1] "Marcar como lida" -> PendingIntent{994a5d1: PendingIntentRecord{a11aec2 com.whatsapp.w4b startService (allowlist: 6fb1859:+30s0ms/0/NOTIFICATION_SERVICE/NotificationManagerService)}}
+>                 [2] "Silenciar" -> PendingIntent{f767836: PendingIntentRecord{88b7536 com.whatsapp.w4b startActivity (allowlist: 6fb1859:+30s0ms/0/NOTIFICATION_SERVICE/NotificationManagerService)}}
+                }
+              extras={
+                  android.title=String [length=24]
+                  android.hiddenConversationTitle=String [length=20]
+                  android.reduced.images=Boolean (true)
+                  android.conversationTitle=String [length=20]
+                  android.subText=null
+                  android.template=String (android.app.Notification$MessagingStyle)
+                  android.showChronometer=Boolean (false)
+                  android.text=String [length=7]
+                  android.progress=Integer (0)
+                  androidx.core.app.extra.COMPAT_TEMPLATE=String [length=51]
+                  android.progressMax=Integer (0)
+                  android.selfDisplayName=String [length=4]
+                  android.conversationUnreadMessageCount=Integer (0)
+>                 android.appInfo=ApplicationInfo (ApplicationInfo{dd5d337 com.whatsapp.w4b})
+                  android.messages=Parcelable[] (3)
+                  android.showWhen=Boolean (true)
+                  android.largeIcon=Icon (Icon(typ=BITMAP size=60x60))
+                  android.messagingStyleUser=Bundle (Bundle[mParcelledData.dataSize=472])
+                  android.messagingUser=Person (android.app.Person@eee46f05)
+                  android.infoText=null
+                  android.wearable.EXTENSIONS=Bundle (Bundle[{actions=[android.app.Notification$Action@86cce0d, android.app.Notification$Action@829e1c2]}])
+                  android.progressIndeterminate=Boolean (false)
+                  android.remoteInputHistory=null
+                  last_row_id=Long (9744)
+                  android.isGroupConversation=Boolean (true)
+              }
+        publicNotification=
+              fullscreenIntent=null
+              contentIntent=null
+              deleteIntent=null
+              number=0
+              groupAlertBehavior=0
+              when=1774472586542
+              tickerText=null
+              contentView=null
+              bigContentView=null
+              headsUpContentView=null
+              color=0xff21c063
+              timeout=unknown
+              parcelDataSize=3180
+              mAllowSystemGeneratedContextualActions=true
+              extras={
+                  android.title=String [length=11]
+                  android.reduced.images=Boolean (true)
+                  android.subText=null
+                  android.showChronometer=Boolean (false)
+                  android.text=String [length=18]
+                  android.progress=Integer (0)
+                  android.progressMax=Integer (0)
+>                 android.appInfo=ApplicationInfo (ApplicationInfo{aaa6bd3 com.whatsapp.w4b})
+                  android.showWhen=Boolean (true)
+                  android.largeIcon=null
+                  android.infoText=null
+                  android.progressIndeterminate=Boolean (false)
+                  android.remoteInputHistory=null
+              }
+        stats=SingleNotificationStats{posttimeElapsedMs=2280399001, posttimeToFirstClickMs=-1, posttimeToDismissMs=-1, airtimeCount=0, airtimeMs=0, currentAirtimeStartElapsedMs=-1, airtimeExpandedMs=0, posttimeToFirstVisibleExpansionMs=-1, currentAirtimeExpandedStartElapsedMs=-1, requestedImportance=3, naturalImportance=4, isNoisy=true}
+        mContactAffinity=0.0
+        mRecentlyIntrusive=false
+        mPackagePriority=0
+        mPackageVisibility=-1000
+        mSystemImportance=UNSPECIFIED
+        mAsstImportance=UNSPECIFIED
+        mImportance=HIGH
+        mImportanceExplanation=app
+        mIsAppImportanceLocked=true
+        mIntercept=false
+        mHidden==false
+        mGlobalSortKey=crtcl=0x0002:intrsv=1:grnk=0x0000:gsmry=1:gsk=001:rnk=0x0000
+        mRankingTimeMs=1774472586000(2026-03-25 18:03:06.000-0300)
+        mCreationTimeMs=1774472569735(2026-03-25 18:02:49.735-0300)
+        mVisibleSinceMs=0(1969-12-31 21:00:00.000-0300)
+        mUpdateTimeMs=1774472586558(2026-03-25 18:03:06.558-0300)
+        mInterruptionTimeMs=1774472586558(2026-03-25 18:03:06.558-0300)
+        mSuppressedVisualEffects= 0
+        mSound= content://settings/system/notification_sound
+        mVibration= Composed{segments=[Step{amplitude=0.0, frequencyHz=0.0, duration=0}, Step{amplitude=-1.0, frequencyHz=0.0, duration=300}, Step{amplitude=0.0, frequencyHz=0.0, duration=200}, Step{amplitude=-1.0, frequencyHz=0.0, duration=300}, Step{amplitude=0.0, frequencyHz=0.0, duration=200}], repeat=-1, mMagnitudeType=TYPE_EXTRA}
+        mAttributes= AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null
+        mLight= Light{color=-1, onMs=500, offMs=2000}
+        mShowBadge=true
+          NotificationChannel{mId='bugle_broadcast_receiver_channel', mName=Tarefa..., mDescription=, mImportance=2, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=false, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=false, mOriginalImp=2, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannelGroup{mId='bugle_web_group', mName=Mensagens na Web, mDescription=, mBlocked=false, mChannels=[], mUserLockedFields=0}
+          NotificationChannelGroup{mId='_bugle_default_settings_group', mName=Configura├º├Áes padr├úo, mDescription=, mBlocked=false, mChannels=[], mUserLockedFields=0}
+          NotificationChannelGroup{mId='bugle_conversations_group', mName=Conversas, mDescription=, mBlocked=false, mChannels=[], mUserLockedFields=0}
+        AppSettings: com.google.android.googlequicksearchbox (10212) importance=DEFAULT userSet=false
+          NotificationChannel{mId='convmode_notification_channel_id', mName=Live c..., mDescription=, mImportance=4, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=false, mOriginalImp=4, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='71', mName=Condi├º..., mDescription=hasDescription , mImportance=1, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=false, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=false, mOriginalImp=1, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='72', mName=Previs..., mDescription=hasDescription , mImportance=2, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=false, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=false, mOriginalImp=2, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='73', mName=Avisos..., mDescription=hasDescription , mImportance=4, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=false, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=false, mOriginalImp=4, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='74', mName=Not├¡ci..., mDescription=hasDescription , mImportance=2, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=false, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=false, mOriginalImp=2, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='75', mName=Esport..., mDescription=hasDescription , mImportance=2, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=false, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=false, mOriginalImp=2, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='77', mName=Outras..., mDescription=hasDescription , mImportance=2, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=false, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=false, mOriginalImp=2, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='78', mName=Pesqui..., mDescription=hasDescription , mImportance=3, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=false, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=false, mOriginalImp=3, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='download-notification-channel-id', mName=Canal ..., mDescription=, mImportance=3, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=false, mOriginalImp=3, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+        AppSettings: com.sec.android.easyMover.Agent (10195) importance=DEFAULT userSet=false permission [pre-grant=true isPreload=true isSigned=true] fixedImportance=true
+          NotificationChannel{mId='SmartSwitchAgent_HUN', mName=Agente..., mDescription=, mImportance=4, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=true, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=true, mOriginalImp=4, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='SmartSwitchAgent_LOW', mName=Agente..., mDescription=, mImportance=2, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=true, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=true, mOriginalImp=2, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='SmartSwitchAgent_DEFAULT ', mName=Agente..., mDescription=, mImportance=3, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=true, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=true, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=true, mOriginalImp=3, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+        AppSettings: com.android.providers.telephony (1001) fixedImportance=true
+        AppSettings: com.samsung.android.app.reminder (10157) importance=DEFAULT userSet=false futureLockedChannels=[REMINDER_CHANNEL_ID_RINGTONE, REMINDER_CHANNEL_ID_CONNECTED_DEVICES]
+        AppSettings: com.samsung.android.da.daagent (1000) fixedImportance=true
+          NotificationChannel{mId='Dual_App_Channel_Id', mName=Notifi..., mDescription=, mImportance=3, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=true, mOriginalImp=3, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+        AppSettings: com.samsung.android.themecenter (1000) fixedImportance=true
+          NotificationChannel{mId='theme_01', mName=Atuali..., mDescription=, mImportance=4, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=true, mOriginalImp=4, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='theme_02', mName=Aplica..., mDescription=, mImportance=1, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=true, mOriginalImp=1, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+        AppSettings: com.sec.android.app.launcher (10121) importance=DEFAULT userSet=false permission [pre-grant=true isPreload=true isSigned=true] fixedImportance=true
+        AppSettings: com.google.android.packageinstaller (10069) importance=DEFAULT userSet=false permission [pre-grant=true isPreload=true] fixedImportance=true
+          NotificationChannel{mId='uninstalling', mName=Execut..., mDescription=, mImportance=1, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=true, mOriginalImp=1, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='uninstall failure', mName=Falha ..., mDescription=, mImportance=3, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=true, mOriginalImp=3, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+        AppSettings: com.sec.android.diagmonagent (1000) fixedImportance=true
+>       AppSettings: com.whatsapp.w4b (10290) importance=DEFAULT userSet=true
+          NotificationChannel{mId='chat_history_backup@1', mName=Backup..., mDescription=, mImportance=2, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=false, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=false, mOriginalImp=2, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='other_notifications@1', mName=Outras..., mDescription=, mImportance=2, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=true, mVibrationEnabled=false, mShowBadge=false, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=false, mOriginalImp=2, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='silent_notifications_3', mName=Notifi..., mDescription=, mImportance=2, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=null, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=false, mOriginalImp=2, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='critical_app_alerts@1', mName=Alerta..., mDescription=, mImportance=4, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=false, mOriginalImp=4, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='group_chat_defaults_2', mName=Notifi..., mDescription=, mImportance=4, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=true, mLightColor=-1, mVibration=[0, 300, 200, 300, 200], mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=true, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='channel_group_chats', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=false, mOriginalImp=4, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='individual_chat_defaults_1', mName=Notifi..., mDescription=, mImportance=4, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=true, mLightColor=-1, mVibration=[0, 300, 200, 300, 200], mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=true, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='channel_group_chats', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=false, mOriginalImp=4, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='failure_notifications@1', mName=Notifi..., mDescription=, mImportance=3, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=false, mOriginalImp=3, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='media_playback@1', mName=Reprod..., mDescription=, mImportance=2, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=false, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=false, mOriginalImp=2, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='sending_media@1', mName=Envian..., mDescription=, mImportance=2, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=false, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=false, mOriginalImp=2, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannelGroup{mId='channel_group_chats', mName=Conversas, mDescription=, mBlocked=false, mChannels=[], mUserLockedFields=0}
+        AppSettings: com.android.keychain (9501000) fixedImportance=true
+        AppSettings: com.android.bluetooth (1002) importance=DEFAULT userSet=false permission [pre-grant=true isPreload=true isSigned=true] fixedImportance=true
+          NotificationChannel{mId='hfp_notification_channel', mName=Status..., mDescription=, mImportance=4, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=true, mOriginalImp=4, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='opp_notification_channel', mName=Compar..., mDescription=, mImportance=4, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=true, mOriginalImp=4, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+        AppSettings: com.samsung.android.allshare.service.fileshare (10165) importance=DEFAULT userSet=false permission [pre-grant=true isPreload=true isSigned=true] fixedImportance=true
+        AppSettings: com.samsung.android.game.gamehome (10075) importance=DEFAULT userSet=false
+          NotificationChannel{mId='com.samsung.android.game.gamehome.notichannel.foreground', mName=Notifi..., mDescription=, mImportance=1, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=false, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=false, mOriginalImp=1, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+        AppSettings: com.samsung.android.callbgprovider (1001) fixedImportance=true
+        AppSettings: android (1000) importance=DEFAULT userSet=false permission [pre-grant=true isPreload=true isSigned=true] fixedImportance=true
+          NotificationChannel{mId='ABUSIVE_BACKGROUND_APPS', mName=Ativid..., mDescription=, mImportance=2, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=true, mOriginalImp=2, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='WifiTransportLayerNotificationManager_DEFAULT', mName=Permit..., mDescription=, mImportance=3, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=true, mOriginalImp=3, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='NETWORK_ALERTS', mName=Alerta..., mDescription=, mImportance=4, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=true, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=true, mOriginalImp=4, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='DEVELOPER', mName=Mensag..., mDescription=, mImportance=2, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=true, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=true, mOriginalImp=2, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='APM_ALERTS', mName=Alerta..., mDescription=, mImportance=4, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=true, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=true, mOriginalImp=4, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='AudioCore_Notification', mName=Este t..., mDescription=, mImportance=4, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=true, mOriginalImp=4, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='SYSTEM_CHANGES_ALERTS', mName=Altera..., mDescription=, mImportance=3, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=null, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=true, mOriginalImp=3, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='NETWORK_STATUS', mName=Status..., mDescription=, mImportance=2, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=true, mOriginalImp=2, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='WifiTransportLayerNotificationManager_HIGH', mName=Permit..., mDescription=, mImportance=4, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=true, mOriginalImp=4, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='PHYSICAL_KEYBOARD', mName=Teclad..., mDescription=, mImportance=3, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=true, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=true, mOriginalImp=3, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+          NotificationChannel{mId='HEAVY_WEIGHT_APP', mName=App em..., mDescription=, mImportance=3, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=null, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=false, mVibrationEnabled=false, mShowBadge=false, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION_EVENT content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=true, mOriginalImp=3, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mSoundMissingReason=0}
+        ConditionRecord[id=condition://android/schedule?days=1.2.3.4.5.6.7&start=22.0&end=7.0&exitAtAlarm=false,component=ComponentInfo{android/com.android.server.notification.ScheduleConditionProvider},subscribed=true]
+      mSystemConditionProviders: {schedule, event, countdown}
+      CountdownConditionProvider:
+        mConnected=true
+        mTime=0
+      EventConditionProvider:
+        mConnected=true
+        mRegistered=false
+        mBootComplete=true
+        mNextAlarmTime=0
+        mSubscriptions=
+        mTrackers=
+          user=0
+            mCallback=null
+            mRegistered=false
+            u=0
+          user=95
+            mCallback=null
+            mRegistered=false
+            u=95
+      ScheduleConditionProvider:
+        mConnected=true
+        mRegistered=true
+        mSubscriptions=
+            condition://android/schedule?days=1.2.3.4.5.6.7&start=22.0&end=7.0&exitAtAlarm=false
+              ScheduleCalendar[mDays={1, 2, 3, 4, 5, 6, 7}, mSchedule=ScheduleInfo{days=[1, 2, 3, 4, 5, 6, 7], startHour=22, startMinute=0, endHour=7, endMinute=0, exitAtAlarm=false, nextAlarm=Wed Dec 31 21:00:00 GMT-03:00 1969 (0)}]
+        snoozed due to alarm: 
+        mNextAlarmTime=Fri Feb 27 22:00:00 GMT-03:00 2026 (1772240400000), in -25d20h9m40s585ms, now=Wed Mar 25 18:09:40 GMT-03:00 2026 (1774472980585)
+  
+    Group summaries:
+>     0|com.whatsapp.w4b|g:group_key_messages -> 0|com.whatsapp.w4b|1|null|10290
+  
+    Usage Stats:
+      AggregatedStats{
+        key='com.google.android.apps.tachyon',
+        numEnqueuedByApp=1,
+        numPostedByApp=1,
+        numUpdatedByApp=0,
+        numRemovedByApp=0,
+        numPeopleCacheHit=41,
+        numWithStaredPeople=0,
+        numWithValidPeople=0,
+        numPeopleCacheMiss=0,
+        numBlocked=0,
+        numSuspendedByAdmin=0,
+        numWithActions=1,
+        numPrivate=1,
+        numSecret=0,
+        numInterrupt=0,
+        numWithBigText=0,
+        numWithBigPicture=0
+        numForegroundService=0
+        numOngoing=0
+        numAutoCancel=1
+        numWithLargeIcon=1
+        numWithInbox=0
+        numWithMediaSession=0
+        numWithTitle=1
+        numWithText=1
+        numWithSubText=0
+        numWithInfoText=0
+        numWithValidPeople=0,
+        numPeopleCacheMiss=0,
+        numBlocked=0,
+        numSuspendedByAdmin=0,
+        numWithActions=0,
+        numPrivate=3,
+        numSecret=0,
+        numInterrupt=0,
+        numWithBigText=0,
+        numWithBigPicture=0
+        numForegroundService=0
+        numOngoing=2
+        numAutoCancel=1
+        numWithLargeIcon=3
+        numWithInbox=0
+        numWithMediaSession=0
+        numWithTitle=3
+        numWithText=0
+        numWithSubText=3
+        numWithInfoText=0
+        numRateViolations=0
+        numAlertViolations=0
+        numQuotaViolations=0
+        numImagesRemoved=0
+        note_imp_noisy_: [0, 0, 0, 3, 0, 0]
+        note_imp_quiet_: [0, 0, 0, 0, 0, 0]
+        note_importance_: [0, 0, 3, 0, 0, 0]
+        numUndecorateRVs=0
+      }
+      AggregatedStats{
+>       key='com.whatsapp.w4b',
+        numEnqueuedByApp=60,
+        numPostedByApp=18,
+        numUpdatedByApp=42,
+        numRemovedByApp=5,
+        numPeopleCacheHit=220,
+        numWithStaredPeople=0,
+        numWithValidPeople=0,
+        numPeopleCacheMiss=0,
+        numBlocked=0,
+        numSuspendedByAdmin=0,
+        numWithActions=30,
+        numPrivate=60,
+        numSecret=0,
+        numInterrupt=0,
+        numWithBigText=0,
+        numWithBigPicture=0
+        numForegroundService=0
+        numOngoing=0
+        numAutoCancel=0
+        numWithLargeIcon=60
+        numWithInbox=22
+        numWithMediaSession=0
+        numWithTitle=60
+        numWithText=60
+        numWithSubText=0
+        numWithInfoText=0
+        numRateViolations=0
+        numAlertViolations=0
+        numQuotaViolations=0
+        numImagesRemoved=0
+    [EL History] :
+     [03-25 17:39:16.251] start : net.dinglisch.android.taskerm : SemEdgeLighitngInfo{type = 2001, colors= [0, 0], repeat= 0, userId = 0},1
+     [03-25 17:39:20.369] stop : com.android.systemui,1
+     [03-25 17:39:21.485] start : net.dinglisch.android.taskerm : SemEdgeLighitngInfo{type = 2001, colors= [0, 0], repeat= 0, userId = 0},1
+     [03-25 17:39:22.479] start : net.dinglisch.android.taskerm : SemEdgeLighitngInfo{type = 2001, colors= [0, 0], repeat= 0, userId = 0},1
+     [03-25 17:39:37.100] start : net.dinglisch.android.taskerm : SemEdgeLighitngInfo{type = 2001, colors= [0, 0], repeat= 0, userId = 0},1
+     [03-25 17:39:37.835] start : net.dinglisch.android.taskerm : SemEdgeLighitngInfo{type = 2001, colors= [0, 0], repeat= 0, userId = 0},1
+     [03-25 17:39:38.144] start : net.dinglisch.android.taskerm : SemEdgeLighitngInfo{type = 2001, colors= [0, 0], repeat= 0, userId = 0},1
+     [03-25 17:39:42.197] stop : com.android.systemui,1
+     [03-25 17:39:56.769] stop : net.dinglisch.android.taskerm,1
+     [03-25 17:40:07.539] start : net.dinglisch.android.taskerm : SemEdgeLighitngInfo{type = 2001, colors= [0, 0], repeat= 0, userId = 0},1
+     [03-25 17:40:07.854] start : net.dinglisch.android.taskerm : SemEdgeLighitngInfo{type = 2001, colors= [0, 0], repeat= 0, userId = 0},1
+     [03-25 17:40:11.890] stop : com.android.systemui,1
+     [03-25 17:40:27.185] start : net.dinglisch.android.taskerm : SemEdgeLighitngInfo{type = 2001, colors= [0, 0], repeat= 0, userId = 0},1
+     [03-25 17:40:27.717] start : net.dinglisch.android.taskerm : SemEdgeLighitngInfo{type = 2001, colors= [0, 0], repeat= 0, userId = 0},1
+     [03-25 17:40:31.809] stop : com.android.systemui,1
+     [03-25 17:40:42.495] start : net.dinglisch.android.taskerm : SemEdgeLighitngInfo{type = 2001, colors= [0, 0], repeat= 0, userId = 0},1
+     [03-25 17:40:43.037] start : net.dinglisch.android.taskerm : SemEdgeLighitngInfo{type = 2001, colors= [0, 0], repeat= 0, userId = 0},1
+     [03-25 17:40:47.295] stop : com.android.systemui,1
+     [03-25 17:41:02.867] start : net.dinglisch.android.taskerm : SemEdgeLighitngInfo{type = 2001, colors= [0, 0], repeat= 0, userId = 0},1
+     [03-25 17:41:03.504] start : net.dinglisch.android.taskerm : SemEdgeLighitngInfo{type = 2001, colors= [0, 0], repeat= 0, userId = 0},1
+     [03-25 17:41:07.617] stop : com.android.systemui,1
+     [03-25 17:41:16.177] start : net.dinglisch.android.taskerm : SemEdgeLighitngInfo{type = 2001, colors= [0, 0], repeat= 0, userId = 0},1
+     [03-25 17:41:16.546] start : net.dinglisch.android.taskerm : SemEdgeLighitngInfo{type = 2001, colors= [0, 0], repeat= 0, userId = 0},1
+     [03-25 17:41:18.967] start : net.dinglisch.android.taskerm : SemEdgeLighitngInfo{type = 2001, colors= [0, 0], repeat= 0, userId = 0},1
+     [03-25 17:41:20.134] start : net.dinglisch.android.taskerm : SemEdgeLighitngInfo{type = 2001, colors= [0, 0], repeat= 0, userId = 0},1
+     [03-25 17:41:22.773] start : net.dinglisch.android.taskerm : SemEdgeLighitngInfo{type = 2001, colors= [0, 0], repeat= 0, userId = 0},1
+     [03-25 17:41:23.084] start : net.dinglisch.android.taskerm : SemEdgeLighitngInfo{type = 2001, colors= [0, 0], repeat= 0, userId = 0},1
+     [03-25 17:41:23.462] start : net.dinglisch.android.taskerm : SemEdgeLighitngInfo{type = 2001, colors= [0, 0], repeat= 0, userId = 0},1
+     [03-25 17:41:27.527] stop : com.android.systemui,1
+>    [03-25 18:02:49.965] start : com.whatsapp.w4b : SemEdgeLighitngInfo{type = 2001, colors= [0, 0], repeat= 0, userId = 0},1
+  
+    [Event History] :
+     [03-24 19:07:08.994] disable: < alerts >
+     [03-24 19:59:51.577] disable: < alerts >
+     [03-24 20:02:18.067] disable: < alerts >
+     [03-24 20:55:26.102] disable: < alerts >
+     [03-25 14:10:48.385] disable: < alerts >
+     [03-25 14:19:48.314] disable: < alerts >
+     [03-25 15:38:30.825] disable: < alerts >
+     [03-25 15:43:36.099] disable: < alerts >
+     [03-25 15:43:48.646] disable: < alerts >
+     [03-25 16:00:27.449] disable: < alerts >
+     [03-25 16:12:48.093] disable: < alerts >
+     [03-25 16:42:01.710] disable: < alerts >
+     [03-25 16:43:43.192] disable: < alerts >
+     [03-25 16:43:48.839] disable: < alerts >
+     [03-25 16:47:08.015] disable: < alerts >
+     [03-25 16:54:57.609] disable: < alerts >
+     [03-25 16:55:04.514] disable: < alerts >
+     [03-25 17:00:43.174] disable: < alerts >
+     [03-25 17:52:33.201] disable: < alerts >
+     [03-25 17:59:45.176] disable: < alerts >
+  
+    [Reject History] :
+>    [03-24 13:25:42.063] showForNotificationScreenOn : No peeking suppressed due to group alert behavior. | Package : com.whatsapp.w4b
+>    [03-24 14:28:25.681] showForNotificationScreenOn : No peeking suppressed due to group alert behavior. | Package : com.whatsapp.w4b
+>    [03-24 14:28:28.808] showForNotificationScreenOn : Alert once notification. | Package : com.whatsapp.w4b, sbn: StatusBarNotification(pkg=com.whatsapp.w4b user=UserHandle{0} id=1 tag=8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+>  key=0|com.whatsapp.w4b|1|8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+  |10290: Notification(channel=group_chat_defaults_2 shortcut=120363407369159074@g.us contentView=null vibrate=null sound=null defaults=0x0 flags=0x8 color=0xff21c063 groupKey=group_key_messages sortKey=1 actions=3 vis=PRIVATE publicVersion=Notification(channel=null shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x0 color=0xff21c063 category=msg vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0) semFlags=0x0 semPriority=0 semMissedCount=0))
+>    [03-24 14:28:43.159] showForNotificationScreenOn : Alert once notification. | Package : com.whatsapp.w4b, sbn: StatusBarNotification(pkg=com.whatsapp.w4b user=UserHandle{0} id=1 tag=8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+>  key=0|com.whatsapp.w4b|1|8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+  |10290: Notification(channel=group_chat_defaults_2 shortcut=120363407369159074@g.us contentView=null vibrate=null sound=null defaults=0x0 flags=0x8 color=0xff21c063 groupKey=group_key_messages sortKey=1 actions=3 vis=PRIVATE publicVersion=Notification(channel=null shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x0 color=0xff21c063 category=msg vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0) semFlags=0x0 semPriority=0 semMissedCount=0))
+>    [03-24 14:28:48.978] showForNotificationScreenOn : Alert once notification. | Package : com.whatsapp.w4b, sbn: StatusBarNotification(pkg=com.whatsapp.w4b user=UserHandle{0} id=1 tag=8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+>  key=0|com.whatsapp.w4b|1|8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+  |10290: Notification(channel=group_chat_defaults_2 shortcut=120363407369159074@g.us contentView=null vibrate=null sound=null defaults=0x0 flags=0x8 color=0xff21c063 groupKey=group_key_messages sortKey=1 actions=3 vis=PRIVATE publicVersion=Notification(channel=null shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x0 color=0xff21c063 category=msg vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0) semFlags=0x0 semPriority=0 semMissedCount=0))
+>    [03-24 18:00:54.094] showForNotificationScreenOn : No peeking suppressed due to group alert behavior. | Package : com.whatsapp.w4b
+>    [03-24 18:00:55.412] showForNotificationScreenOn : Alert once notification. | Package : com.whatsapp.w4b, sbn: StatusBarNotification(pkg=com.whatsapp.w4b user=UserHandle{0} id=1 tag=8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+>  key=0|com.whatsapp.w4b|1|8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+  |10290: Notification(channel=group_chat_defaults_2 shortcut=120363407369159074@g.us contentView=null vibrate=null sound=null defaults=0x0 flags=0x8 color=0xff21c063 groupKey=group_key_messages sortKey=1 actions=3 vis=PRIVATE publicVersion=Notification(channel=null shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x0 color=0xff21c063 category=msg vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0) semFlags=0x0 semPriority=0 semMissedCount=0))
+>    [03-24 18:00:56.983] showForNotificationScreenOn : Alert once notification. | Package : com.whatsapp.w4b, sbn: StatusBarNotification(pkg=com.whatsapp.w4b user=UserHandle{0} id=1 tag=8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+>  key=0|com.whatsapp.w4b|1|8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+  |10290: Notification(channel=group_chat_defaults_2 shortcut=120363407369159074@g.us contentView=null vibrate=null sound=null defaults=0x0 flags=0x8 color=0xff21c063 groupKey=group_key_messages sortKey=1 actions=3 vis=PRIVATE publicVersion=Notification(channel=null shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x0 color=0xff21c063 category=msg vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0) semFlags=0x0 semPriority=0 semMissedCount=0))
+>    [03-24 18:00:59.788] showForNotificationScreenOn : Alert once notification. | Package : com.whatsapp.w4b, sbn: StatusBarNotification(pkg=com.whatsapp.w4b user=UserHandle{0} id=1 tag=8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+>  key=0|com.whatsapp.w4b|1|8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+  |10290: Notification(channel=group_chat_defaults_2 shortcut=120363407369159074@g.us contentView=null vibrate=null sound=null defaults=0x0 flags=0x8 color=0xff21c063 groupKey=group_key_messages sortKey=1 actions=3 vis=PRIVATE publicVersion=Notification(channel=null shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x0 color=0xff21c063 category=msg vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0) semFlags=0x0 semPriority=0 semMissedCount=0))
+>    [03-24 18:01:02.815] showForNotificationScreenOn : Alert once notification. | Package : com.whatsapp.w4b, sbn: StatusBarNotification(pkg=com.whatsapp.w4b user=UserHandle{0} id=1 tag=8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+>  key=0|com.whatsapp.w4b|1|8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+  |10290: Notification(channel=group_chat_defaults_2 shortcut=120363407369159074@g.us contentView=null vibrate=null sound=null defaults=0x0 flags=0x8 color=0xff21c063 groupKey=group_key_messages sortKey=1 actions=3 vis=PRIVATE publicVersion=Notification(channel=null shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x0 color=0xff21c063 category=msg vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0) semFlags=0x0 semPriority=0 semMissedCount=0))
+>    [03-24 18:01:06.570] showForNotificationScreenOn : Alert once notification. | Package : com.whatsapp.w4b, sbn: StatusBarNotification(pkg=com.whatsapp.w4b user=UserHandle{0} id=1 tag=8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+>  key=0|com.whatsapp.w4b|1|8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+  |10290: Notification(channel=group_chat_defaults_2 shortcut=120363407369159074@g.us contentView=null vibrate=null sound=null defaults=0x0 flags=0x8 color=0xff21c063 groupKey=group_key_messages sortKey=1 actions=3 vis=PRIVATE publicVersion=Notification(channel=null shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x0 color=0xff21c063 category=msg vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0) semFlags=0x0 semPriority=0 semMissedCount=0))
+>    [03-24 18:01:08.868] showForNotificationScreenOn : Alert once notification. | Package : com.whatsapp.w4b, sbn: StatusBarNotification(pkg=com.whatsapp.w4b user=UserHandle{0} id=1 tag=8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+>  key=0|com.whatsapp.w4b|1|8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+  |10290: Notification(channel=group_chat_defaults_2 shortcut=120363407369159074@g.us contentView=null vibrate=null sound=null defaults=0x0 flags=0x8 color=0xff21c063 groupKey=group_key_messages sortKey=1 actions=3 vis=PRIVATE publicVersion=Notification(channel=null shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x0 color=0xff21c063 category=msg vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0) semFlags=0x0 semPriority=0 semMissedCount=0))
+>    [03-24 18:01:25.322] showForNotificationScreenOn : Alert once notification. | Package : com.whatsapp.w4b, sbn: StatusBarNotification(pkg=com.whatsapp.w4b user=UserHandle{0} id=1 tag=8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+>  key=0|com.whatsapp.w4b|1|8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+  |10290: Notification(channel=group_chat_defaults_2 shortcut=120363407369159074@g.us contentView=null vibrate=null sound=null defaults=0x0 flags=0x8 color=0xff21c063 groupKey=group_key_messages sortKey=1 actions=3 vis=PRIVATE publicVersion=Notification(channel=null shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x0 color=0xff21c063 category=msg vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0) semFlags=0x0 semPriority=0 semMissedCount=0))
+>    [03-24 18:17:26.503] showForNotificationScreenOn : No peeking suppressed due to group alert behavior. | Package : com.whatsapp.w4b
+>    [03-24 18:17:30.855] showForNotificationScreenOn : Alert once notification. | Package : com.whatsapp.w4b, sbn: StatusBarNotification(pkg=com.whatsapp.w4b user=UserHandle{0} id=1 tag=8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+>  key=0|com.whatsapp.w4b|1|8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+  |10290: Notification(channel=group_chat_defaults_2 shortcut=120363407369159074@g.us contentView=null vibrate=null sound=null defaults=0x0 flags=0x8 color=0xff21c063 groupKey=group_key_messages sortKey=1 actions=3 vis=PRIVATE publicVersion=Notification(channel=null shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x0 color=0xff21c063 category=msg vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0) semFlags=0x0 semPriority=0 semMissedCount=0))
+>    [03-24 18:17:34.767] showForNotificationScreenOn : Alert once notification. | Package : com.whatsapp.w4b, sbn: StatusBarNotification(pkg=com.whatsapp.w4b user=UserHandle{0} id=1 tag=8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+>  key=0|com.whatsapp.w4b|1|8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+  |10290: Notification(channel=group_chat_defaults_2 shortcut=120363407369159074@g.us contentView=null vibrate=null sound=null defaults=0x0 flags=0x8 color=0xff21c063 groupKey=group_key_messages sortKey=1 actions=3 vis=PRIVATE publicVersion=Notification(channel=null shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x0 color=0xff21c063 category=msg vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0) semFlags=0x0 semPriority=0 semMissedCount=0))
+>    [03-24 18:17:36.249] showForNotificationScreenOn : Alert once notification. | Package : com.whatsapp.w4b, sbn: StatusBarNotification(pkg=com.whatsapp.w4b user=UserHandle{0} id=1 tag=8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+>  key=0|com.whatsapp.w4b|1|8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+  |10290: Notification(channel=group_chat_defaults_2 shortcut=120363407369159074@g.us contentView=null vibrate=null sound=null defaults=0x0 flags=0x8 color=0xff21c063 groupKey=group_key_messages sortKey=1 actions=3 vis=PRIVATE publicVersion=Notification(channel=null shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x0 color=0xff21c063 category=msg vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0) semFlags=0x0 semPriority=0 semMissedCount=0))
+>    [03-24 18:17:38.875] showForNotificationScreenOn : Alert once notification. | Package : com.whatsapp.w4b, sbn: StatusBarNotification(pkg=com.whatsapp.w4b user=UserHandle{0} id=1 tag=8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+>  key=0|com.whatsapp.w4b|1|8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+  |10290: Notification(channel=group_chat_defaults_2 shortcut=120363407369159074@g.us contentView=null vibrate=null sound=null defaults=0x0 flags=0x8 color=0xff21c063 groupKey=group_key_messages sortKey=1 actions=3 vis=PRIVATE publicVersion=Notification(channel=null shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x0 color=0xff21c063 category=msg vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0) semFlags=0x0 semPriority=0 semMissedCount=0))
+>    [03-25 15:52:29.478] showForNotificationScreenOn : No peeking suppressed due to group alert behavior. | Package : com.whatsapp.w4b
+>    [03-25 15:52:50.968] showForNotificationScreenOn : Alert once notification. | Package : com.whatsapp.w4b, sbn: StatusBarNotification(pkg=com.whatsapp.w4b user=UserHandle{0} id=1 tag=8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+>  key=0|com.whatsapp.w4b|1|8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+  |10290: Notification(channel=group_chat_defaults_2 shortcut=120363407369159074@g.us contentView=null vibrate=null sound=null defaults=0x0 flags=0x8 color=0xff21c063 groupKey=group_key_messages sortKey=1 actions=3 vis=PRIVATE publicVersion=Notification(channel=null shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x0 color=0xff21c063 category=msg vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0) semFlags=0x0 semPriority=0 semMissedCount=0))
+>    [03-25 15:53:19.531] showForNotificationScreenOn : No peeking suppressed due to group alert behavior. | Package : com.whatsapp.w4b
+>    [03-25 16:45:59.579] showForNotificationScreenOn : No peeking suppressed due to group alert behavior. | Package : com.whatsapp.w4b
+>    [03-25 16:46:46.741] showForNotificationScreenOn : Alert once notification. | Package : com.whatsapp.w4b, sbn: StatusBarNotification(pkg=com.whatsapp.w4b user=UserHandle{0} id=1 tag=8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+>  key=0|com.whatsapp.w4b|1|8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+  |10290: Notification(channel=group_chat_defaults_2 shortcut=120363407369159074@g.us contentView=null vibrate=null sound=null defaults=0x0 flags=0x8 color=0xff21c063 groupKey=group_key_messages sortKey=1 actions=3 vis=PRIVATE publicVersion=Notification(channel=null shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x0 color=0xff21c063 category=msg vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0) semFlags=0x0 semPriority=0 semMissedCount=0))
+>    [03-25 18:02:49.948] showForNotificationScreenOn : No peeking suppressed due to group alert behavior. | Package : com.whatsapp.w4b
+>    [03-25 18:03:03.895] showForNotificationScreenOn : Alert once notification. | Package : com.whatsapp.w4b, sbn: StatusBarNotification(pkg=com.whatsapp.w4b user=UserHandle{0} id=1 tag=8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+>  key=0|com.whatsapp.w4b|1|8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+  |10290: Notification(channel=group_chat_defaults_2 shortcut=120363407369159074@g.us contentView=null vibrate=null sound=null defaults=0x0 flags=0x8 color=0xff21c063 groupKey=group_key_messages sortKey=001 actions=3 vis=PRIVATE publicVersion=Notification(channel=null shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x0 color=0xff21c063 category=msg vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0) semFlags=0x0 semPriority=0 semMissedCount=0))
+>    [03-25 18:03:06.768] showForNotificationScreenOn : Alert once notification. | Package : com.whatsapp.w4b, sbn: StatusBarNotification(pkg=com.whatsapp.w4b user=UserHandle{0} id=1 tag=8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+>  key=0|com.whatsapp.w4b|1|8mMX+A5CVI8P+eJOeKuKEafuzsBpXWaZRflZrLdPRw0=
+  |10290: Notification(channel=group_chat_defaults_2 shortcut=120363407369159074@g.us contentView=null vibrate=null sound=null defaults=0x0 flags=0x8 color=0xff21c063 groupKey=group_key_messages sortKey=001 actions=3 vis=PRIVATE publicVersion=Notification(channel=null shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x0 color=0xff21c063 category=msg vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0) semFlags=0x0 semPriority=0 semMissedCount=0))
+
