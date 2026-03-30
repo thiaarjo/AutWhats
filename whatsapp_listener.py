@@ -596,6 +596,7 @@ class WhatsAppListener:
         """
         import xml.etree.ElementTree as ET
         count_saved = 0
+        bounds_map = {}
         
         # Coleta TODOS os elementos WhatsApp relevantes com suas posições
         all_elements = []
@@ -1016,7 +1017,7 @@ class WhatsAppListener:
         # -1 significa scroll infinito até o critério de parada
         limit = 999999 if scrolls == -1 else scrolls
         no_new_consecutive = 0
-        MAX_EMPTY = 3  # Scrolls consecutivos sem novidade antes de parar
+        MAX_EMPTY = 10  # Scrolls consecutivos sem novidade antes de parar
         
         for i in range(limit):
             if not self.running:
