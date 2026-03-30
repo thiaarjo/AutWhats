@@ -1137,7 +1137,6 @@ class WhatsAppListener:
 # ============================================================================
 # EXPORTAÇÃO CSV
 # ============================================================================
-  print(f"Exportando CSV para {CSV_PATH}...")
 
 def load_config():
     """Carrega as configurações de um arquivo JSON se existir."""
@@ -1206,9 +1205,7 @@ if __name__ == "__main__":
     
     # Processa gatilhos
     
-    if args.modo == "export":
-        export_csv()
-    elif args.modo in ["auto", "listener"]:
+    if args.modo in ["auto", "listener"]:
         # ── Modo Contínuo: monitora múltiplos grupos via badge ──
         listener = WhatsAppListener(target_groups=args.grupos, serial=args.serial)
         try:
