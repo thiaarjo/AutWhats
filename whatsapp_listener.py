@@ -238,6 +238,43 @@ class WhatsAppListener:
         except Exception:
             return None
 
+    def _save_media_from_gallery(self, media_type, count, bounds):
+        """
+        Abre a Galeria do Whatsapp clicando na imagem,
+        Clica Menu -> 'Salvar' para forçar a criação de um arquivo fresco na raiz do Android,
+        repete para todos os itens do álbum, e retorna ao chat.
+        """
+        if not bounds: return
+        try:
+            # 1. Clicar no centro da área da tela da imagem/album
+            cx, cy = (bounds['left'] + bounds['right']) // 2, (bounds['top'] + bounds['bottom']) // 2
+            self.d.click(cx, cy)
+            time.sleep(2) # Espera a foto abrir fullscreen
+
+            iters = count if media_type == "image_album" else 1
+
+            for i in range(iters):
+                # 2. Abre opções
+                self.d(description="Mais opções").click(timeout=3)
+                time.sleep(1)
+                
+                # 3. Clica em "Salvar"
+                self.d(text="Salvar").click(timeout=3)
+                time.sleep(2) # Espera a notificação "Salvo..."
+                
+                # Desliza para esquerda se não for o último do album
+                if iters > 1 and i < iters - 1:
+                    self.d.swipe_ext("left", scale=0.8)
+                    time.sleep(1)
+            
+            # 4. Voltar para o Chat
+            self.d.press("back")
+            time.sleep(1)
+            
+        except Exception as e:
+            self.log.debug(f"Erro ao forçar Salvar legado: {e}")
+            self.d.press("back") # Failsafe
+
     def _get_media_adb_path(self, media_type):
         """Mapeia o tipo de mídia para a pasta correspondente no Android (W4B)."""
         base = "/storage/emulated/0/Android/media/com.whatsapp.w4b/WhatsApp Business/Media/"
@@ -327,6 +364,83 @@ class WhatsAppListener:
         except Exception as e:
             self.log.error(f"Erro no download de mídia ({media_type}): {e}")
             return None, None
+
+    def _download_media_by_date(self, media_type, count, msg_date, msg_time):
+        """
+        Busca arquivos fisicamente no Android vinculados à data (IMG-YYYYMMDD-WA) e Hora do XML.
+        Garante que pegamos as fotos antigas perfeitamente sem dar um único clique na tela.
+        """
+        import os, time, random
+        from datetime import datetime
+        try:
+            date_prefix = msg_date.replace("-", "")
+            if media_type in ("image", "image_album"):
+                adb_dir = "/storage/emulated/0/Android/media/com.whatsapp.w4b/WhatsApp Business/Media/WhatsApp Business Images/"
+                dest_dir = self.img_dir
+                name_pattern = f"*{date_prefix}*.jpg"
+            elif media_type == "audio":
+                adb_dir = "/storage/emulated/0/Android/media/com.whatsapp.w4b/WhatsApp Business/Media/WhatsApp Business Voice Notes/"
+                dest_dir = self.audio_dir
+                name_pattern = f"*{date_prefix}*.opus"
+            else:
+                return None, None
+                
+            find_cmd = f"find '{adb_dir}' -maxdepth 2 -type f -name '{name_pattern}' -printf '%T@|%p\\n'"
+            output = self.d.shell(find_cmd).output.strip()
+            
+            valid_files = []
+            if output and "not found" not in output:
+                for line in output.split('\n'):
+                    line = line.strip()
+                    if not line: continue
+                    try:
+                        ts_str, remote_path = line.split('|', 1)
+                        file_dt = datetime.fromtimestamp(float(ts_str))
+                        msg_dt = datetime.strptime(msg_time, "%H:%M")
+                        
+                        file_mins = file_dt.hour * 60 + file_dt.minute
+                        msg_mins = msg_dt.hour * 60 + msg_dt.minute
+                        
+                        diff_mins = min(abs(file_mins - msg_mins), abs(1440 - abs(file_mins - msg_mins)))
+                        
+                        if diff_mins <= 15: # Tolerância estendida de 15 minutos (fuso, delay de download, etc)
+                            valid_files.append((diff_mins, float(ts_str), remote_path))
+                    except Exception:
+                        pass
+                        
+            # Ordena primeiro pela diferença de tempo (mais próximo = melhor), depois pelo timestamp exato
+            valid_files.sort(key=lambda x: (x[0], x[1]))
+            selected = [x[2] for x in valid_files]
+            
+            if not selected:
+                # Se a foto não teve hora perfeitamente batendo, pesca pelo ADB como fallback normal
+                return self._download_recent_media(media_type, count)
+                
+            selected = selected[-count:]
+            paths_downloaded = []
+            hashes_downloaded = []
+            for remote_path in selected:
+                ext = os.path.splitext(remote_path)[1]
+                temp_name = f"temp_{int(time.time()*1000)}_{random.randint(100,999)}{ext}"
+                local_temp_path = os.path.abspath(os.path.join(dest_dir, temp_name))
+                try:
+                    self.d.pull(remote_path.replace("\\", "/"), local_temp_path)
+                    if not os.path.exists(local_temp_path): continue
+                    f_hash = self._calculate_file_hash(local_temp_path)
+                    final_name = f"{f_hash}{ext}" if f_hash else temp_name
+                    local_final_path = os.path.abspath(os.path.join(dest_dir, final_name))
+                    if f_hash and os.path.exists(local_final_path): os.remove(local_temp_path)
+                    else: os.rename(local_temp_path, local_final_path)
+                    rel_base = "images" if "image" in media_type else "audio"
+                    rel_path = os.path.join("media", rel_base, os.path.basename(local_final_path)).replace("\\", "/")
+                    paths_downloaded.append(rel_path)
+                    hashes_downloaded.append(f_hash if f_hash else "NO_HASH")
+                except Exception:
+                    continue
+            return "|".join(paths_downloaded), "|".join(hashes_downloaded)
+        except Exception as e:
+            self.log.debug(f"Erro em DB temporal media: {e}")
+            return self._download_recent_media(media_type, count)
 
     # -----------------------------------------------------------------------
     # NAVEGAÇÃO SEGURA
@@ -530,9 +644,11 @@ class WhatsAppListener:
             # Processa linha de mensagem
             result = self._process_row(row)
             if result:
-                sender, content, timestamp, media_type = result
+                sender, content, timestamp, media_type, img_bounds = result
                 # Criamos a 5-tupla estável (incluindo a data ativa no momento)
-                current_screen_raw.append((sender, content, timestamp, media_type, active_date))
+                msg_tuple = (sender, content, timestamp, media_type, active_date)
+                current_screen_raw.append(msg_tuple)
+                bounds_map[id(msg_tuple)] = img_bounds
         
         if not current_screen_raw:
             return 0
@@ -573,10 +689,14 @@ class WhatsAppListener:
                         match = re.search(r'(\d+)', content)
                         count = int(match.group(1)) if match else 1
                     
-                    self.log.info(f"Nova mídia detectada ({media_type}, {count} arquivos): Baixando...")
-                    # Delay para o WA processar os arquivos no celular
-                    time.sleep(2.0) 
-                    local_path, f_hash = self._download_recent_media(media_type, count=count)
+                    if is_scrolling_up and media_type in ("image", "image_album"):
+                        self.log.info(f"Modo Legado: Puxando foto de forma invisível no Android (sem clicks) usando Data e Hora.")
+                        local_path, f_hash = self._download_media_by_date(media_type, count, msg_date, timestamp)
+                    else:
+                        self.log.info(f"Nova mídia detectada ({media_type}, {count} arquivos): Baixando...")
+                        espera = max(2.5, count * 0.8)
+                        time.sleep(espera) 
+                        local_path, f_hash = self._download_recent_media(media_type, count=count)
                 
                 if self.save_message(sender, content, timestamp, msg_date, media_type, seq_index, local_path, f_hash):
                     count_saved += 1
@@ -665,7 +785,7 @@ class WhatsAppListener:
     def _process_row(self, row_elements):
         """
         Processa um grupo de elementos na mesma linha vertical.
-        Retorna (sender, content, timestamp, media_type) ou None.
+        Retorna (sender, content, timestamp, media_type, img_bounds) ou None.
         """
         has_message_text = None
         has_status = False
@@ -676,6 +796,7 @@ class WhatsAppListener:
         has_sender_name = None
         has_caption = None
         has_edit_label = False
+        has_unread_divider = None
         album_thumbs = []
         extra_count = 0
         
@@ -709,6 +830,8 @@ class WhatsAppListener:
                     has_voice = el
             elif rid in ('conversation_row_name', 'conversation_row_contact_name', 'name_in_group_tv'):
                 has_sender_name = el
+            elif rid == 'conversation_row_date_divider':
+                has_unread_divider = el
         
         # Determina o remetente
         if has_status:
@@ -738,26 +861,30 @@ class WhatsAppListener:
         if album_thumbs or extra_count > 0:
             total_in_album = len(album_thumbs) + extra_count
             content = f"[Álbum] {total_in_album} fotos"
-            return (sender, content + suffix, timestamp, "image_album")
+            return (sender, content + suffix, timestamp, "image_album", album_thumbs[0]['bounds'] if album_thumbs else None)
+            
+        if has_unread_divider and has_unread_divider['text']:
+            # Divisor de mensagens não lidas gerado pelo próprio WA
+            return ("Sistema", has_unread_divider['text'], timestamp, "system", None)
             
         if has_message_text and has_message_text['text']:
             txt = has_message_text['text']
-            if "mensagem apagada" in txt.lower():
-                return (sender, "[MENSAGEM APAGADA]", timestamp, "deleted")
-            return (sender, txt + suffix, timestamp, "text")
+            if "mensagem apagada" in txt.lower() or "você apagou esta mensagem" in txt.lower():
+                return None
+            return (sender, txt + suffix, timestamp, "text", None)
             
         elif has_image:
             desc = (has_image['desc'] or '').strip()
             cap = f" | Legenda: {has_caption['text']}" if has_caption and has_caption['text'] else ""
             content = f"[Foto] {desc}{cap}" if desc else f"[Foto]{cap}"
-            return (sender, content + suffix, timestamp, "image")
+            return (sender, content + suffix, timestamp, "image", has_image['bounds'])
             
         elif has_view_once:
             desc = (has_view_once['desc'] or '').lower()
             if 'voz' in desc or 'reprodução' in desc:
-                return (sender, f"[Voz Única] {desc}", timestamp, "view_once_voice")
+                return (sender, f"[Voz Única] {desc}", timestamp, "view_once_voice", None)
             else:
-                return (sender, f"[Foto Única] {desc}", timestamp, "view_once_photo")
+                return (sender, f"[Foto Única] {desc}", timestamp, "view_once_photo", None)
                 
         elif has_voice:
             desc = (has_voice['desc'] or '').strip()
@@ -768,11 +895,6 @@ class WhatsAppListener:
                     if potential_name and potential_name.lower() not in ('voz', 'áudio'):
                         sender = potential_name
                         self.last_known_sender = sender
-            return (sender, f"[Áudio] {desc}{suffix}", timestamp, "audio")
-        
-        return None
-
-    # -----------------------------------------------------------------------
     # UTILITÁRIOS DE IDENTIFICAÇÃO
     # -----------------------------------------------------------------------
     def _identify_sender(self, element, bounds):
@@ -914,13 +1036,12 @@ class WhatsAppListener:
                     self.log.info(f"Parada automática: {MAX_EMPTY} scrolls consecutivos sem mensagens novas.")
                     break
             
-            # Executa o scroll — se estiver sem novidades, usa swipe mais forte
+            # Executa o scroll — se estiver sem novidades, usa swipe um pouquinho maior para desenganchar
             if no_new_consecutive > 0:
-                # Swipe reforçado: mais longo para tentar revelar conteúdo novo
-                self.d.swipe_ext(swipe_dir, scale=0.9)
+                self.d.swipe_ext(swipe_dir, scale=0.85)
                 time.sleep(2)
             else:
-                self.d.swipe_ext(swipe_dir, scale=0.8)
+                self.d.swipe_ext(swipe_dir, scale=0.65)
 
     def _check_unread_badge(self, group_name):
         """
@@ -1016,47 +1137,7 @@ class WhatsAppListener:
 # ============================================================================
 # EXPORTAÇÃO CSV
 # ============================================================================
-def export_csv():
-    """Exporta os dados do banco para CSV formatado."""
-    import pandas as pd
-    
-    if not os.path.exists(DB_PATH):
-        print(f"Erro: Banco de dados não encontrado em: {DB_PATH}")
-        return
-    
-    print(f"Abrindo banco para exportação: {DB_PATH}")
-    try:
-        conn = sqlite3.connect(DB_PATH, timeout=10)
-    except Exception as e:
-        print(f"ERRO ao abrir banco para export: {e}")
-        import traceback
-        traceback.print_exc()
-        return
-    query = """
-        SELECT 
-            id AS ID,
-            group_name AS Grupo,
-            sender AS Remetente,
-            content AS Conteudo,
-            media_type AS Tipo_Midia,
-            timestamp_str AS Hora,
-            message_date AS Data_Mensagem,
-            local_path AS Caminho_Media,
-            file_hash AS Hash,
-            captured_at AS Data_Captura
-        FROM messages
-        ORDER BY group_name, message_date, timestamp_str
-    """
-    df = pd.read_sql_query(query, conn)
-    conn.close()
-    
-    df.to_csv(CSV_PATH, index=False, encoding="utf-8-sig")
-    print(f"Exportado com sucesso: {CSV_PATH}")
-    print(f"Total de registros: {len(df)}")
-    if len(df) > 0:
-        print(f"\nResumo por tipo de mídia:")
-        print(df['Tipo_Midia'].value_counts().to_string())
-
+  print(f"Exportando CSV para {CSV_PATH}...")
 
 def load_config():
     """Carrega as configurações de um arquivo JSON se existir."""
@@ -1162,7 +1243,6 @@ if __name__ == "__main__":
                         time.sleep(args.intervalo)
         finally:
             listener.close()
-            export_csv()
     elif args.modo == "legado":
         # ── Modo Legado: captura histórico profundo via scroll ──
         listener = WhatsAppListener(target_groups=args.grupos, serial=args.serial)
@@ -1174,4 +1254,3 @@ if __name__ == "__main__":
                         listener.return_to_chat_list()
         finally:
             listener.close()
-            export_csv()
