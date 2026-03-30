@@ -12,6 +12,7 @@ Versão: 2.0 (Produção)
 import uiautomator2 as u2
 import sqlite3
 import hashlib
+import random
 import time
 import os
 import sys
@@ -28,7 +29,7 @@ DB_PATH = os.path.join(BASE_DIR, "whatsapp_capture.db")
 LOG_PATH = os.path.join(BASE_DIR, "scraper.log")
 CSV_PATH = os.path.join(BASE_DIR, "mensagens_capturadas.csv")
 
-DEVICE_SERIAL = "192.168.0.254:33325"
+DEVICE_SERIAL = "RX8RC0HXX3F"
 PACKAGE_NAME = "com.whatsapp.w4b"
 
 # Resource IDs mapeados via Weditor
@@ -36,7 +37,7 @@ IDS = {
     "group_name":       "com.whatsapp.w4b:id/conversation_contact_name",
     "group_members":    "com.whatsapp.w4b:id/conversation_contact_status",
     "sender":           "com.whatsapp.w4b:id/conversation_row_name",
-    "sender_alt":       "com.whatsapp.w4b:id/conversation_row_contact_name",
+    "sender_alt":       "com.whatsapp.w4b:id/conversations_row_contact_name",
     "message_text":     "com.whatsapp.w4b:id/message_text",
     "timestamp":        "com.whatsapp.w4b:id/date",
     "date_divider":     "com.whatsapp.w4b:id/conversation_row_date_divider",
@@ -46,6 +47,14 @@ IDS = {
     "status":           "com.whatsapp.w4b:id/status",
     "info":             "com.whatsapp.w4b:id/info",
     "unread_badge":     "com.whatsapp.w4b:id/conversations_row_message_count",
+    "caption":          "com.whatsapp.w4b:id/caption",
+    "edit_label":       "com.whatsapp.w4b:id/edit_label",
+    "media_container":  "com.whatsapp.w4b:id/media_container",
+    "thumb_0":          "com.whatsapp.w4b:id/thumb_0",
+    "thumb_1":          "com.whatsapp.w4b:id/thumb_1",
+    "thumb_2":          "com.whatsapp.w4b:id/thumb_2",
+    "sender_group":     "com.whatsapp.w4b:id/name_in_group_tv",
+    "album_more":       "com.whatsapp.w4b:id/more",
 }
 
 # ============================================================================
@@ -130,6 +139,13 @@ class WhatsAppListener:
         self._session_timestamp = datetime.now().strftime("%H:%M")
         self.last_seen_timestamp = self._session_timestamp
         
+        # Subpastas de mídia
+        self.media_dir = os.path.join(BASE_DIR, "media")
+        self.img_dir = os.path.join(self.media_dir, "images")
+        self.audio_dir = os.path.join(self.media_dir, "audio")
+        os.makedirs(self.img_dir, exist_ok=True)
+        os.makedirs(self.audio_dir, exist_ok=True)
+        
         # Inicializa banco de dados
         self._init_db()
         
@@ -158,18 +174,23 @@ class WhatsAppListener:
                     media_type TEXT DEFAULT 'text',
                     timestamp_str TEXT,
                     message_date TEXT,
+                    local_path TEXT,
+                    file_hash TEXT,
                     captured_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
             # Migração: adicionar colunas novas se não existirem
-            try:
-                cursor.execute("ALTER TABLE messages ADD COLUMN media_type TEXT DEFAULT 'text'")
-            except sqlite3.OperationalError:
-                pass
-            try:
-                cursor.execute("ALTER TABLE messages ADD COLUMN message_date TEXT")
-            except sqlite3.OperationalError:
-                pass
+            cols = [
+                ("media_type", "TEXT DEFAULT 'text'"),
+                ("message_date", "TEXT"),
+                ("local_path", "TEXT"),
+                ("file_hash", "TEXT")
+            ]
+            for col_name, col_def in cols:
+                try:
+                    cursor.execute(f"ALTER TABLE messages ADD COLUMN {col_name} {col_def}")
+                except sqlite3.OperationalError:
+                    pass  # Já existe
             
             self.conn.commit()
             
@@ -181,14 +202,14 @@ class WhatsAppListener:
             self.log.critical(f"Erro fatal no banco de dados: {e}")
             raise
 
-    def save_message(self, sender, content, timestamp, message_date, media_type="text", seq_index=0):
+    def save_message(self, sender, content, timestamp, message_date, media_type="text", seq_index=0, local_path=None, file_hash=None):
         """Salva uma mensagem no banco com deduplicação por hash + índice sequencial."""
         msg_id = self._hash(sender, content, timestamp, message_date, media_type, seq_index)
         try:
             self.conn.execute(
-                "INSERT INTO messages (id, group_name, sender, content, media_type, timestamp_str, message_date) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (msg_id, self._current_group, sender, content, media_type, timestamp, message_date)
+                "INSERT INTO messages (id, group_name, sender, content, media_type, timestamp_str, message_date, local_path, file_hash) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (msg_id, self._current_group, sender, content, media_type, timestamp, message_date, local_path, file_hash)
             )
             self.conn.commit()
             return True
@@ -202,6 +223,110 @@ class WhatsAppListener:
         """Gera hash MD5 único para deduplicação. NÃO inclui message_date (instável entre sessões)."""
         data = f"{self._current_group}|{sender}|{content}|{timestamp}|{media_type}|{seq_index}".encode('utf-8')
         return hashlib.md5(data).hexdigest()
+
+    # -----------------------------------------------------------------------
+    # GESTÃO DE MÍDIA (ADB PULL)
+    # -----------------------------------------------------------------------
+    def _calculate_file_hash(self, filepath):
+        """Calcula SHA-256 do arquivo para integridade física."""
+        sha256_hash = hashlib.sha256()
+        try:
+            with open(filepath, "rb") as f:
+                for byte_block in iter(lambda: f.read(4096), b""):
+                    sha256_hash.update(byte_block)
+            return sha256_hash.hexdigest()
+        except Exception:
+            return None
+
+    def _get_media_adb_path(self, media_type):
+        """Mapeia o tipo de mídia para a pasta correspondente no Android (W4B)."""
+        base = "/storage/emulated/0/Android/media/com.whatsapp.w4b/WhatsApp Business/Media/"
+        if media_type == "image":
+            return base + "WhatsApp Business Images/"
+        elif media_type == "audio":
+            # Voice notes ficam em subpastas por semana (ex: 202412)
+            # Pegamos a pasta principal e o script buscará recursivamente
+            return base + "WhatsApp Business Voice Notes/"
+        return None
+
+    def _download_recent_media(self, media_type, count=1):
+        """
+        Localiza o(s) arquivo(s) mais recente(s) via ADB na pasta correspondente,
+        faz o pull, calcula o hash e renomeia.
+        Suporta 'count' para baixar vários de uma vez (ex: álbuns).
+        """
+        adb_folder = self._get_media_adb_path("image" if media_type == "image_album" else media_type)
+        if not adb_folder:
+            return None, None
+
+        try:
+            # 1. Encontra os N arquivos mais recentes
+            # Para áudio (VNs), busca recursiva. IMPORTANTE: Usar aspas para o shell
+            if media_type == "audio":
+                find_cmd = f"find '{adb_folder}' -type f -name '*.opus' -printf '%T@ %p\\n' | sort -rn | head -{count} | cut -d' ' -f2-"
+            else:
+                # Para imagens, ls -t e head -N
+                find_cmd = f"ls -t '{adb_folder}' | head -{count}"
+            
+            output = self.d.shell(find_cmd).output.strip()
+            if not output or "not found" in output:
+                return None, None
+                
+            remote_paths = output.split('\n')
+            
+            paths_downloaded = []
+            hashes_downloaded = []
+            
+            for remote_file in remote_paths:
+                remote_file = remote_file.strip()
+                if not remote_file: continue
+                
+                # Constrói path completo no Android
+                if media_type == "audio":
+                    remote_path = remote_file
+                else:
+                    remote_path = os.path.join(adb_folder, remote_file).replace("\\", "/")
+                
+                # 2. Define destino local temporário (Caminho absoluto para não errar)
+                ext = os.path.splitext(remote_path)[1] or (".jpg" if "image" in media_type else ".opus")
+                temp_name = f"temp_{int(time.time()*1000)}_{random.randint(100,999)}{ext}"
+                local_dest_dir = self.img_dir if "image" in media_type else self.audio_dir
+                local_temp_path = os.path.abspath(os.path.join(local_dest_dir, temp_name))
+
+                # 3. Faz o Pull (Importante: remotepath pode ter espaços, uiautomator2 lida bem se for a string pura)
+                self.log.debug(f"Puxando mídia: {remote_path} -> {local_temp_path}")
+                try:
+                    self.d.pull(remote_path, local_temp_path)
+                except Exception as pe:
+                    self.log.error(f"Erro no pull adb: {pe}")
+                    continue
+
+                if not os.path.exists(local_temp_path):
+                    self.log.warning(f"Arquivo não chegou ao PC: {local_temp_path}")
+                    continue
+
+                # 4. Hash e Persistência
+                f_hash = self._calculate_file_hash(local_temp_path)
+                final_name = f"{f_hash}{ext}" if f_hash else temp_name
+                local_final_path = os.path.abspath(os.path.join(local_dest_dir, final_name))
+                
+                if f_hash and os.path.exists(local_final_path):
+                    os.remove(local_temp_path)
+                else:
+                    os.rename(local_temp_path, local_final_path)
+
+                # Caminho relativo para o banco (para ser portátil)
+                rel_base = "images" if "image" in media_type else "audio"
+                rel_path = os.path.join("media", rel_base, os.path.basename(local_final_path)).replace("\\", "/")
+                paths_downloaded.append(rel_path)
+                hashes_downloaded.append(f_hash or "unknown")
+
+            # Retorna strings separadas por vírgula se for lote
+            return "|".join(paths_downloaded), "|".join(hashes_downloaded)
+
+        except Exception as e:
+            self.log.error(f"Erro no download de mídia ({media_type}): {e}")
+            return None, None
 
     # -----------------------------------------------------------------------
     # NAVEGAÇÃO SEGURA
@@ -245,56 +370,56 @@ class WhatsAppListener:
         self.log.critical("Não foi possível abrir o WA Business após 3 tentativas.")
         return False
 
-    def navigate_to_group(self, group_name):
-        """Navega para um grupo específico na lista de conversas."""
+    def open_group(self, group_name):
+        """
+        Garante a abertura de um grupo específico.
+        Retorna True se entrar, False se falhar.
+        """
         self._current_group = group_name
+        self.log.info(f"Tentando abrir grupo: {group_name}...")
         
-        # Se já estiver dentro do grupo
+        # 1. Tenta abrir o app no package correto
+        self.d.app_start(PACKAGE_NAME)
+        time.sleep(1)
+        
+        # 2. Se já estiver no grupo certo, OK
         if self.d(resourceId=IDS["group_name"], text=group_name).exists(timeout=2):
-            self.log.debug(f"Já estamos dentro do grupo '{group_name}'.")
+            self.log.info(f"Já estamos dentro do grupo: {group_name}")
             return True
-        
-        # Se estiver dentro de OUTRO grupo, voltar
+            
+        # 3. Se estiver em OUTRO grupo, volta para a lista
         if self.d(resourceId=IDS["group_name"]).exists(timeout=1):
-            self.log.info("Dentro de outro grupo. Voltando à lista...")
             self.d.press("back")
-            time.sleep(1.5)
+            time.sleep(1)
+            
+        # 4. Procura o grupo na lista de conversas
+        target = self.d(resourceId=IDS["sender_alt"], text=group_name)
+        if not target.exists:
+            # Scroll para achar
+            self.log.info(f"Buscando '{group_name}' na lista de chats...")
+            self.d(scrollable=True).scroll.to(text=group_name)
+            target = self.d(resourceId=IDS["sender_alt"], text=group_name)
+            
+        if target.exists(timeout=2):
+            target.click()
+            # Espera carregar o conteúdo interno (o container de mensagens ou álbuns)
+            if self.d(resourceId=IDS["message_text"]).wait(timeout=5.0) or \
+               self.d(resourceId=IDS["media_container"]).wait(timeout=5.0):
+                self._message_buffer = []  # Limpa buffer para nova scan
+                self.log.info(f"Grupo '{group_name}' aberto e carregado.")
+                return True
         
-        self.log.info(f"Buscando grupo '{group_name}' na lista de conversas...")
-        for scroll in range(10):
-            try:
-                entry = self.d(text=group_name)
-                if entry.exists(timeout=1):
-                    entry.click()
-                    time.sleep(2)
-                    # Confirma que entrou
-                    if self.d(resourceId=IDS["group_name"], text=group_name).exists(timeout=2):
-                        self._message_buffer = [] 
-                        self._session_timestamp = datetime.now().strftime("%H:%M")
-                        self.last_seen_timestamp = self._session_timestamp # Inicia rastreador
-                        self.log.info(f"Grupo '{group_name}' aberto com sucesso.")
-                        return True
-                self.d.swipe_ext("up", scale=0.5)
-                time.sleep(0.8)
-            except Exception as e:
-                self.log.error(f"Erro ao buscar grupo (scroll {scroll}): {e}")
-                time.sleep(1)
-        
-        self.log.error(f"Grupo '{group_name}' NÃO encontrado após 10 scrolls.")
+        self.log.error(f"Erro: Não foi possível abrir o grupo '{group_name}'.")
         return False
 
     def return_to_chat_list(self):
         """Retorna à lista de conversas de forma segura."""
         for _ in range(3):
-            try:
-                if self.d(resourceId=IDS["group_name"]).exists(timeout=1):
-                    self.d.press("back")
-                    time.sleep(1)
-                else:
-                    return True
-            except Exception:
+            if self.d(resourceId=IDS["group_name"]).exists(timeout=1):
                 self.d.press("back")
                 time.sleep(1)
+            else:
+                return True
         return True
 
     # -----------------------------------------------------------------------
@@ -356,7 +481,7 @@ class WhatsAppListener:
         Usa Sliding Window bidirecional para determinar quais são as NOVAS.
         """
         import xml.etree.ElementTree as ET
-        count = 0
+        count_saved = 0
         
         # Coleta TODOS os elementos WhatsApp relevantes com suas posições
         all_elements = []
@@ -423,36 +548,48 @@ class WhatsAppListener:
             self._message_buffer.extend(new_messages)
             
         # 3. Salva no banco com deduplicação real via Hash MD5 (estável entre sessões)
-        # Track local occurrences in the entire session buffer for stable seq_index
         for msg in new_messages:
             sender, content, timestamp, media_type, msg_date = msg
             
-            # Conta quantas vezes este conteúdo exato apareceu no buffer ATÉ AGORA
+            # Cálculo de ocorrência para seq_index (deduplicação estável)
             occurrence_in_session = 0
             for prev_msg in self._message_buffer:
                 if prev_msg == msg:
                     occurrence_in_session += 1
-                if prev_msg is msg: # Chegou nele mesmo
+                if prev_msg is msg:
                     break
-            
-            # O seq_index é a ocorrência (0, 1, 2...) ajustada pelo que já existe no banco
-            # para evitar colisões, mas aqui usamos a ocorrência da sessão como base.
-            # v3.0: O hash agora é DETERMINÍSTICO baseando-se na posição na sequência vista.
             seq_index = occurrence_in_session - 1
             
             msg_id = self._hash(sender, content, timestamp, msg_date, media_type, seq_index)
             
             if not self._check_id_exists(msg_id):
-                if self.save_message(sender, content, timestamp, msg_date, media_type, seq_index):
-                    count += 1
-                    self.log.info(f"[{media_type.upper()}] {sender}: {content[:40]}... ({timestamp})")
+                # Se for mídia, baixa o(s) arquivo(s)
+                local_path = None
+                f_hash = None
+                if media_type in ("image", "audio", "image_album"):
+                    count = 1
+                    if media_type == "image_album":
+                        import re
+                        match = re.search(r'(\d+)', content)
+                        count = int(match.group(1)) if match else 1
+                    
+                    self.log.info(f"Nova mídia detectada ({media_type}, {count} arquivos): Baixando...")
+                    # Delay para o WA processar os arquivos no celular
+                    time.sleep(2.0) 
+                    local_path, f_hash = self._download_recent_media(media_type, count=count)
+                
+                if self.save_message(sender, content, timestamp, msg_date, media_type, seq_index, local_path, f_hash):
+                    count_saved += 1
+                    status = f"[{media_type.upper()}]"
+                    checksum_info = f" [SHA256: {f_hash[:10]}...]" if f_hash else ""
+                    self.log.info(f"{status}{checksum_info} {sender}: {content[:40]}... ({timestamp})")
             else:
                 self.log.debug(f"Mensagem já existe: {sender} - {content[:20]} ({msg_date} {timestamp})")
         
         if len(self._message_buffer) > 200:
             self._message_buffer = self._message_buffer[:200] if is_scrolling_up else self._message_buffer[-200:]
             
-        return count
+        return count_saved
 
     def _check_id_exists(self, msg_id):
         """Verifica se um ID (Hash) já existe no banco de dados."""
@@ -508,6 +645,8 @@ class WhatsAppListener:
         sorted_els = sorted(elements, key=lambda e: e['bounds']['top'])
         
         rows = []
+        if not sorted_els: return []
+        
         current_row = [sorted_els[0]]
         
         for el in sorted_els[1:]:
@@ -535,38 +674,47 @@ class WhatsAppListener:
         has_view_once = None
         has_voice = None
         has_sender_name = None
+        has_caption = None
+        has_edit_label = False
+        album_thumbs = []
+        extra_count = 0
         
         for el in row_elements:
             rid = el['rid']
             
             if rid == 'message_text':
                 has_message_text = el
+            elif rid == 'caption':
+                has_caption = el
+            elif rid == 'edit_label':
+                has_edit_label = True
             elif rid == 'status':
-                has_status = True  # Presença de status = mensagem do "Eu"
+                has_status = True  # Minha mensagem
             elif rid == 'date':
                 has_timestamp = el
             elif rid == 'image':
-                # Ignora ícones pequenos
-                w = el['bounds']['right'] - el['bounds']['left']
-                h = el['bounds']['bottom'] - el['bounds']['top']
-                if w > 100 and h > 100:
-                    has_image = el
+                has_image = el
+            elif rid.startswith('thumb_'):
+                album_thumbs.append(el)
+            elif rid == 'more':
+                # Verifica se tem o label de "+X" fotos (Álbum)
+                txt = (el['text'] or '').strip()
+                if txt.startswith('+') and txt[1:].isdigit():
+                    extra_count = int(txt[1:])
             elif rid == 'view_once_media_container_large':
                 has_view_once = el
             elif rid == 'main_layout':
-                desc = el['desc'].lower()
-                if any(kw in desc for kw in ['mensagem de voz', 'áudio', 'audio', 'segundos', 'minutos']):
+                desc = (el['desc'] or '').lower()
+                if any(kw in desc for kw in ['voz', 'áudio', 'audio', 'segundos', 'minutos']):
                     has_voice = el
-            elif rid in ('conversation_row_name', 'conversation_row_contact_name'):
+            elif rid in ('conversation_row_name', 'conversation_row_contact_name', 'name_in_group_tv'):
                 has_sender_name = el
         
         # Determina o remetente
         if has_status:
             sender = "Eu"
         elif has_sender_name and has_sender_name['text']:
-            # Limpa lixo Unicode e nomes que vem com prefixos na UI
             raw_name = has_sender_name['text'].replace('\u200e', '').strip()
-            # Se vier algo como "Fulano: ", remove o ":"
             if raw_name.endswith(':'):
                 raw_name = raw_name[:-1].strip()
             sender = raw_name
@@ -581,35 +729,46 @@ class WhatsAppListener:
             timestamp = has_timestamp['text']
             self.last_seen_timestamp = timestamp
         else:
-            # Herda o último timestamp visto (evita duplicatas por 'now()')
             timestamp = self.last_seen_timestamp
         
         # Processa o conteúdo baseado no tipo
+        suffix = " (Editada)" if has_edit_label else ""
+        
+        # Se for um álbum (várias thumbs ou container com extra)
+        if album_thumbs or extra_count > 0:
+            total_in_album = len(album_thumbs) + extra_count
+            content = f"[Álbum] {total_in_album} fotos"
+            return (sender, content + suffix, timestamp, "image_album")
+            
         if has_message_text and has_message_text['text']:
-            return (sender, has_message_text['text'], timestamp, "text")
+            txt = has_message_text['text']
+            if "mensagem apagada" in txt.lower():
+                return (sender, "[MENSAGEM APAGADA]", timestamp, "deleted")
+            return (sender, txt + suffix, timestamp, "text")
+            
         elif has_image:
-            desc = has_image['desc'] or ''
-            content = f"[Foto] {desc}" if desc else "[Foto]"
-            return (sender, content, timestamp, "image")
+            desc = (has_image['desc'] or '').strip()
+            cap = f" | Legenda: {has_caption['text']}" if has_caption and has_caption['text'] else ""
+            content = f"[Foto] {desc}{cap}" if desc else f"[Foto]{cap}"
+            return (sender, content + suffix, timestamp, "image")
+            
         elif has_view_once:
-            desc = has_view_once['desc'] or ''
-            desc_lower = desc.lower()
-            if 'voz' in desc_lower or 'reprodução' in desc_lower:
+            desc = (has_view_once['desc'] or '').lower()
+            if 'voz' in desc or 'reprodução' in desc:
                 return (sender, f"[Voz Única] {desc}", timestamp, "view_once_voice")
             else:
                 return (sender, f"[Foto Única] {desc}", timestamp, "view_once_photo")
+                
         elif has_voice:
-            desc = has_voice['desc'] or ''
-            # Tenta extrair nome do remetente do desc do áudio
-            # Ex: "Th, mensagem de voz, 6 segundos, 14:28"
+            desc = (has_voice['desc'] or '').strip()
             if sender == self.last_known_sender or sender == "Desconhecido":
                 parts = desc.replace('\u200e', '').split(',')
                 if len(parts) > 1:
                     potential_name = parts[0].strip()
-                    if potential_name and potential_name.lower() not in ('mensagem de voz', 'áudio'):
+                    if potential_name and potential_name.lower() not in ('voz', 'áudio'):
                         sender = potential_name
                         self.last_known_sender = sender
-            return (sender, f"[Áudio] {desc}", timestamp, "audio")
+            return (sender, f"[Áudio] {desc}{suffix}", timestamp, "audio")
         
         return None
 
@@ -721,13 +880,13 @@ class WhatsAppListener:
     # -----------------------------------------------------------------------
     # INGESTÃO DE LEGADO (HISTÓRICO)
     # -----------------------------------------------------------------------
-    def ingest_legacy(self, scrolls=5, direction="passado"):
+    def ingest_legacy(self, group_name="Desconhecido", scrolls=5, direction="passado"):
         """
         Sobe ou desce a conversa para capturar mensagens antigas (histórico).
         Para automaticamente se ficar 3 scrolls sem encontrar mensagens novas.
         Usa 'swipe reforçado' quando detecta scrolls vazios para garantir que a tela mudou.
         """
-        self.log.info(f"Ingestão de legado iniciada: {'infinito (smart-stop)' if scrolls == -1 else scrolls} scrolls na direção '{direction}'.")
+        self.log.info(f"Arqueologia Digital em '{group_name}': {'infinito (smart-stop)' if scrolls == -1 else scrolls} scrolls p/ {direction}.")
         total = 0
         swipe_dir = "down" if direction == "passado" else "up"
         is_scrolling_up = (direction == "passado")
@@ -882,6 +1041,8 @@ def export_csv():
             media_type AS Tipo_Midia,
             timestamp_str AS Hora,
             message_date AS Data_Mensagem,
+            local_path AS Caminho_Media,
+            file_hash AS Hash,
             captured_at AS Data_Captura
         FROM messages
         ORDER BY group_name, message_date, timestamp_str
@@ -984,11 +1145,12 @@ if __name__ == "__main__":
                         if not listener.running:
                             break
                         
-                        unread = listener._check_unread_badge(grupo)
+                        # Scaneia a tela por badges (não precisa passar o grupo por parâmetro aqui)
+                        unread_list = listener._check_unread_badge()
                         
-                        if unread > 0:
-                            listener.log.info(f">>> {unread} nova(s) em '{grupo}' — entrando para captura...")
-                            if listener.navigate_to_group(grupo):
+                        if grupo in unread_list:
+                            listener.log.info(f">>> Nova(s) mensagem(ns) em '{grupo}' — entrando para captura...")
+                            if listener.open_group(grupo):
                                 listener.scrape_visible_messages(is_scrolling_up=False)
                                 listener.return_to_chat_list()
                                 time.sleep(1)
@@ -1007,8 +1169,8 @@ if __name__ == "__main__":
         try:
             if listener.ensure_app_open():
                 for grupo in args.grupos:
-                    if listener.navigate_to_group(grupo):
-                        listener.ingest_legacy(scrolls=args.scrolls)
+                    if listener.open_group(grupo):
+                        listener.ingest_legacy(grupo, scrolls=args.scrolls)
                         listener.return_to_chat_list()
         finally:
             listener.close()

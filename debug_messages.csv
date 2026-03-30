@@ -1,0 +1,33 @@
+rowid,sender,media_type,timestamp_str,msg
+1,Th,view_once_photo,14:28,"[Foto Única] ‎Foto de visualização única, 14:"
+2,Th,audio,14:28,"[Áudio] ‎Th, mensagem de voz, 6 segundos, 14:"
+3,Th,text,18:00,oi
+4,Th,text,18:00,veja
+5,Th,text,18:00,"ative o robo"
+6,Th,text,18:01,"vai vai"
+7,Th,text,18:01,"veja oq tem d novo"
+8,Th,text,18:17,"testes e mais testes"
+9,Th,text,18:17,"mensagens novas"
+10,Th,text,18:17,testes
+11,Th,text,18:17,"mais testes"
+12,Th,image,19:21,"[Foto] Aumentar foto"
+13,Th,view_once_photo,14:28,"[Foto Única] ‎Foto de visualização única, 14:"
+14,Th,audio,14:28,"[Áudio] ‎Th, mensagem de voz, 6 segundos, 14:"
+15,Th,text,18:00,oi
+16,Th,text,18:00,veja
+17,Eu,text,13:27,Oi
+18,Eu,text,13:27,Testar
+19,Eu,text,13:27,"Mensagens antigas"
+20,Eu,text,13:27,"Preciso testar"
+21,Th,text,13:30,Testes
+22,Th,text,13:30,Verificando
+23,Th,image,13:30,"[Foto] Aumentar foto"
+24,Th,text,19:21,Oi
+25,Eu,text,13:27,"Fazendo testes"
+26,Eu,text,13:27,"Mensagens antigas"
+27,Eu,text,13:27,"E novas"
+28,Eu,text,13:27,"Preciso testar"
+29,Th,text,19:21,Oi
+30,Eu,text,13:27,"Fazendo testes"
+31,Eu,text,13:27,"Mensagens antigas"
+32,Eu,text,13:27,"E novas"
