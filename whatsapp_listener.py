@@ -176,7 +176,16 @@ class WhatsAppListener:
                     message_date TEXT,
                     local_path TEXT,
                     file_hash TEXT,
+                    session_number INTEGER DEFAULT 0,
                     captured_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            # Tabela de metadados para controlar logs por grupo
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS group_metadata (
+                    group_name TEXT PRIMARY KEY,
+                    last_session_number INTEGER DEFAULT 0
                 )
             ''')
             # Migração: adicionar colunas novas se não existirem
@@ -184,7 +193,8 @@ class WhatsAppListener:
                 ("media_type", "TEXT DEFAULT 'text'"),
                 ("message_date", "TEXT"),
                 ("local_path", "TEXT"),
-                ("file_hash", "TEXT")
+                ("file_hash", "TEXT"),
+                ("session_number", "INTEGER DEFAULT 0")
             ]
             for col_name, col_def in cols:
                 try:
@@ -202,14 +212,42 @@ class WhatsAppListener:
             self.log.critical(f"Erro fatal no banco de dados: {e}")
             raise
 
+    def _start_new_session(self, group_name):
+        """
+        Incrementa e retorna o número da sessão (Log) para um grupo específico.
+        Garante que cada 'pulo' no grupo seja rastreado de forma única.
+        """
+        try:
+            cursor = self.conn.cursor()
+            # Pega o último número ou inicializa com 0
+            cursor.execute("SELECT last_session_number FROM group_metadata WHERE group_name = ?", (group_name,))
+            row = cursor.fetchone()
+            
+            new_session = 1
+            if row:
+                new_session = row[0] + 1
+                cursor.execute("UPDATE group_metadata SET last_session_number = ? WHERE group_name = ?", (new_session, group_name))
+            else:
+                cursor.execute("INSERT INTO group_metadata (group_name, last_session_number) VALUES (?, ?)", (group_name, new_session))
+            
+            self.conn.commit()
+            self._current_session_number = new_session
+            self.log.info(f">>> [LOG {new_session}] Iniciando nova sessão de captura para: {group_name}")
+            return new_session
+        except Exception as e:
+            self.log.error(f"Erro ao gerar novo session_id para {group_name}: {e}")
+            self._current_session_number = 0
+            return 0
+
     def save_message(self, sender, content, timestamp, message_date, media_type="text", seq_index=0, local_path=None, file_hash=None):
         """Salva uma mensagem no banco com deduplicação por hash + índice sequencial."""
         msg_id = self._hash(sender, content, timestamp, message_date, media_type, seq_index)
+        session_num = getattr(self, '_current_session_number', 0)
         try:
             self.conn.execute(
-                "INSERT INTO messages (id, group_name, sender, content, media_type, timestamp_str, message_date, local_path, file_hash) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (msg_id, self._current_group, sender, content, media_type, timestamp, message_date, local_path, file_hash)
+                "INSERT INTO messages (id, group_name, sender, content, media_type, timestamp_str, message_date, local_path, file_hash, session_number) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (msg_id, self._current_group, sender, content, media_type, timestamp, message_date, local_path, file_hash, session_num)
             )
             self.conn.commit()
             return True
@@ -219,9 +257,22 @@ class WhatsAppListener:
             self.log.error(f"Erro ao salvar mensagem: {e}")
             return False
 
+    def _normalize(self, text):
+        """Remove caracteres de controle Unicode (como \u200e) e espaços extras."""
+        if not text: return ""
+        # Remove caracteres invisíveis LTR/RTL e outros controles
+        text = "".join(ch for ch in text if ch.isprintable())
+        return text.strip()
+
     def _hash(self, sender, content, timestamp, message_date, media_type, seq_index=0):
-        """Gera hash MD5 único para deduplicação. NÃO inclui message_date (instável entre sessões)."""
-        data = f"{self._current_group}|{sender}|{content}|{timestamp}|{media_type}|{seq_index}".encode('utf-8')
+        """
+        Gera hash MD5 único e estável para deduplicação.
+        Inclui message_date para evitar colisões entre dias diferentes.
+        """
+        s_norm = self._normalize(sender)
+        c_norm = self._normalize(content)
+        # Monta a string de identidade da mensagem
+        data = f"{self._current_group}|{s_norm}|{c_norm}|{timestamp}|{message_date}|{media_type}|{seq_index}".encode('utf-8')
         return hashlib.md5(data).hexdigest()
 
     # -----------------------------------------------------------------------
@@ -520,6 +571,7 @@ class WhatsAppListener:
             if self.d(resourceId=IDS["message_text"]).wait(timeout=5.0) or \
                self.d(resourceId=IDS["media_container"]).wait(timeout=5.0):
                 self._message_buffer = []  # Limpa buffer para nova scan
+                self._start_new_session(group_name) # Inicializa Log ID para esta visita
                 self.log.info(f"Grupo '{group_name}' aberto e carregado.")
                 return True
         
@@ -668,10 +720,14 @@ class WhatsAppListener:
         for msg in new_messages:
             sender, content, timestamp, media_type, msg_date = msg
             
-            # Cálculo de ocorrência para seq_index (deduplicação estável)
+            # Cálculo de ocorrência para seq_index (deduplicação estável) sobre dados limpos
             occurrence_in_session = 0
+            msg_norm = (self._normalize(sender), self._normalize(content), timestamp, media_type, msg_date)
+            
             for prev_msg in self._message_buffer:
-                if prev_msg == msg:
+                # Normaliza o buffer para comparação justa
+                prev_norm = (self._normalize(prev_msg[0]), self._normalize(prev_msg[1]), prev_msg[2], prev_msg[3], prev_msg[4])
+                if prev_norm == msg_norm:
                     occurrence_in_session += 1
                 if prev_msg is msg:
                     break
@@ -896,6 +952,7 @@ class WhatsAppListener:
                     if potential_name and potential_name.lower() not in ('voz', 'áudio'):
                         sender = potential_name
                         self.last_known_sender = sender
+            return (sender, f"[Voz] {desc}", timestamp, "audio", None)
     # UTILITÁRIOS DE IDENTIFICAÇÃO
     # -----------------------------------------------------------------------
     def _identify_sender(self, element, bounds):
@@ -1224,10 +1281,10 @@ if __name__ == "__main__":
                         if not listener.running:
                             break
                         
-                        # Scaneia a tela por badges (não precisa passar o grupo por parâmetro aqui)
-                        unread_list = listener._check_unread_badge()
+                        # Scaneia a tela por badges para o grupo atual
+                        unread_count = listener._check_unread_badge(grupo)
                         
-                        if grupo in unread_list:
+                        if unread_count > 0:
                             listener.log.info(f">>> Nova(s) mensagem(ns) em '{grupo}' — entrando para captura...")
                             if listener.open_group(grupo):
                                 listener.scrape_visible_messages(is_scrolling_up=False)
