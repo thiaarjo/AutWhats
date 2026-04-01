@@ -139,6 +139,9 @@ class WhatsAppListener:
         self._session_timestamp = datetime.now().strftime("%H:%M")
         self.last_seen_timestamp = self._session_timestamp
         
+        # Cache de mídias baixadas NESTA SESSÃO para evitar duplicidade de associação
+        self.downloaded_remote_paths = set()
+        
         # Subpastas de mídia
         self.media_dir = os.path.join(BASE_DIR, "media")
         self.img_dir = os.path.join(self.media_dir, "images")
@@ -339,200 +342,191 @@ class WhatsAppListener:
 
     def _download_recent_media(self, media_type, count=1):
         """
-        Localiza o(s) arquivo(s) mais recente(s) via ADB na pasta correspondente,
-        faz o pull, calcula o hash e renomeia.
-        Suporta 'count' para baixar vários de uma vez (ex: álbuns).
+        Localiza o(s) arquivo(s) mais recente(s) via ADB, ignorando os já baixados nesta run.
         """
         adb_folder = self._get_media_adb_path("image" if media_type == "image_album" else media_type)
-        if not adb_folder:
-            return None, None
+        if not adb_folder: return None, None
 
         try:
-            # 1. Encontra os N arquivos mais recentes
-            # Para áudio (VNs), busca recursiva. IMPORTANTE: Usar aspas para o shell
+            # Pega uma lista maior (ex: 20) para podermos filtrar os que já usamos
             if media_type == "audio":
-                find_cmd = f"find '{adb_folder}' -type f -name '*.opus' -printf '%T@ %p\\n' | sort -rn | head -{count} | cut -d' ' -f2-"
+                find_cmd = f"find '{adb_folder}' -type f -name '*.opus' -printf '%T@ %p\\n' | sort -rn | head -20 | cut -d' ' -f2-"
             else:
-                # Para imagens, ls -t e head -N
-                find_cmd = f"ls -t '{adb_folder}' | head -{count}"
+                find_cmd = f"ls -t '{adb_folder}' | head -20"
             
             output = self.d.shell(find_cmd).output.strip()
-            if not output or "not found" in output:
-                return None, None
+            if not output or "not found" in output: return None, None
                 
-            remote_paths = output.split('\n')
+            all_recent = output.split('\n')
             
+            # Filtra apenas os que não baixamos ainda nesta sessão
+            # Ordena por timestamp real do arquivo para bater com a hierarquia do chat
+            remote_paths = []
+            # 'all_recent' foi obtido com 'find %T@ %p' ou 'ls -t', ambos dão os mais recentes primeiro
+            for r in all_recent:
+                r = r.strip()
+                if not r: continue
+                full_remote = r if media_type == "audio" else os.path.join(adb_folder, r).replace("\\", "/")
+                if full_remote not in self.downloaded_remote_paths:
+                    remote_paths.append(full_remote)
+                if len(remote_paths) >= count: break
+
+            if not remote_paths:
+                self.log.debug(f"Nenhum arquivo novo disponível na pasta de {media_type}.")
+                return None, None
+
             paths_downloaded = []
             hashes_downloaded = []
             
-            for remote_file in remote_paths:
-                remote_file = remote_file.strip()
-                if not remote_file: continue
-                
-                # Constrói path completo no Android
-                if media_type == "audio":
-                    remote_path = remote_file
-                else:
-                    remote_path = os.path.join(adb_folder, remote_file).replace("\\", "/")
-                
-                # 2. Define destino local temporário (Caminho absoluto para não errar)
+            for remote_path in remote_paths:
+                # 2. Destino local
                 ext = os.path.splitext(remote_path)[1] or (".jpg" if "image" in media_type else ".opus")
-                temp_name = f"temp_{int(time.time()*1000)}_{random.randint(100,999)}{ext}"
-                local_dest_dir = self.img_dir if "image" in media_type else self.audio_dir
-                local_temp_path = os.path.abspath(os.path.join(local_dest_dir, temp_name))
+                local_temp_path = os.path.abspath(os.path.join(self.img_dir if "image" in media_type else self.audio_dir, f"temp_{random.randint(1000,9999)}{ext}"))
 
-                # 3. Faz o Pull (Importante: remotepath pode ter espaços, uiautomator2 lida bem se for a string pura)
-                self.log.debug(f"Puxando mídia: {remote_path} -> {local_temp_path}")
-                try:
-                    self.d.pull(remote_path, local_temp_path)
-                except Exception as pe:
-                    self.log.error(f"Erro no pull adb: {pe}")
-                    continue
+                self.d.pull(remote_path, local_temp_path)
+                if not os.path.exists(local_temp_path): continue
 
-                if not os.path.exists(local_temp_path):
-                    self.log.warning(f"Arquivo não chegou ao PC: {local_temp_path}")
-                    continue
-
-                # 4. Hash e Persistência
                 f_hash = self._calculate_file_hash(local_temp_path)
-                final_name = f"{f_hash}{ext}" if f_hash else temp_name
-                local_final_path = os.path.abspath(os.path.join(local_dest_dir, final_name))
+                final_name = f"{f_hash}{ext}" if f_hash else os.path.basename(local_temp_path)
+                local_final = os.path.join(os.path.dirname(local_temp_path), final_name)
                 
-                if f_hash and os.path.exists(local_final_path):
-                    os.remove(local_temp_path)
+                if not os.path.exists(local_final):
+                    os.rename(local_temp_path, local_final)
                 else:
-                    os.rename(local_temp_path, local_final_path)
+                    os.remove(local_temp_path)
 
-                # Caminho relativo para o banco (para ser portátil)
+                # Marca como baixado para não repetir
+                self.downloaded_remote_paths.add(remote_path)
+                
                 rel_base = "images" if "image" in media_type else "audio"
-                rel_path = os.path.join("media", rel_base, os.path.basename(local_final_path)).replace("\\", "/")
+                rel_path = os.path.join("media", rel_base, os.path.basename(local_final)).replace("\\", "/")
                 paths_downloaded.append(rel_path)
                 hashes_downloaded.append(f_hash or "unknown")
 
-            # Retorna strings separadas por vírgula se for lote
             return "|".join(paths_downloaded), "|".join(hashes_downloaded)
-
         except Exception as e:
-            self.log.error(f"Erro no download de mídia ({media_type}): {e}")
+            self.log.error(f"Erro no download RECENTE ({media_type}): {e}")
             return None, None
 
     def _download_media_by_date(self, media_type, count, msg_date, msg_time):
         """
-        Busca arquivos fisicamente no Android vinculados à data (IMG-YYYYMMDD-WA) e Hora do XML.
-        Garante que pegamos as fotos antigas perfeitamente sem dar um único clique na tela.
+        Busca arquivos vinculados à data (YYYYMMDD) e HORA aproximada no Android.
+        Garante precisão ao associar fotos e áudios históricos.
         """
         import os, time, random
         from datetime import datetime
         try:
             date_prefix = msg_date.replace("-", "")
-            if media_type in ("image", "image_album"):
-                adb_dir = "/storage/emulated/0/Android/media/com.whatsapp.w4b/WhatsApp Business/Media/WhatsApp Business Images/"
-                dest_dir = self.img_dir
-                name_pattern = f"*{date_prefix}*.jpg"
-            elif media_type == "audio":
-                adb_dir = "/storage/emulated/0/Android/media/com.whatsapp.w4b/WhatsApp Business/Media/WhatsApp Business Voice Notes/"
-                dest_dir = self.audio_dir
-                name_pattern = f"*{date_prefix}*.opus"
-            else:
-                return None, None
-                
-            find_cmd = f"find '{adb_dir}' -maxdepth 2 -type f -name '{name_pattern}' -printf '%T@|%p\\n'"
+            adb_dir = self._get_media_adb_path("image" if media_type == "image_album" else media_type)
+            if not adb_dir: return None, None
+            
+            # 1. Busca todos os arquivos do dia
+            find_cmd = f"find '{adb_dir}' -maxdepth 2 -type f -name '*{date_prefix}*' -printf '%T@|%p\\n'"
             output = self.d.shell(find_cmd).output.strip()
+            if not output: return None, None
             
-            valid_files = []
-            if output and "not found" not in output:
-                for line in output.split('\n'):
-                    line = line.strip()
-                    if not line: continue
-                    try:
-                        ts_str, remote_path = line.split('|', 1)
-                        file_dt = datetime.fromtimestamp(float(ts_str))
-                        msg_dt = datetime.strptime(msg_time, "%H:%M")
-                        
-                        file_mins = file_dt.hour * 60 + file_dt.minute
-                        msg_mins = msg_dt.hour * 60 + msg_dt.minute
-                        
-                        diff_mins = min(abs(file_mins - msg_mins), abs(1440 - abs(file_mins - msg_mins)))
-                        
-                        if diff_mins <= 15: # Tolerância estendida de 15 minutos (fuso, delay de download, etc)
-                            valid_files.append((diff_mins, float(ts_str), remote_path))
-                    except Exception:
-                        pass
-                        
-            # Ordena primeiro pela diferença de tempo (mais próximo = melhor), depois pelo timestamp exato
-            valid_files.sort(key=lambda x: (x[0], x[1]))
-            selected = [x[2] for x in valid_files]
-            
-            if not selected:
-                # Se a foto não teve hora perfeitamente batendo, pesca pelo ADB como fallback normal
-                return self._download_recent_media(media_type, count)
+            # 2. Converte horário da mensagem para minutos (ex: "18:24" -> 1104)
+            try:
+                m_hour, m_min = map(int, msg_time.split(':'))
+                msg_total_min = m_hour * 60 + m_min
+            except: 
+                msg_total_min = -1
+
+            files_of_the_day = []
+            for line in output.split('\n'):
+                if '|' not in line: continue
+                ts_str, fpath = line.split('|', 1)
+                # Converte timestamp do arquivo para HH:MM do dia
+                dt_object = datetime.fromtimestamp(float(ts_str))
+                file_total_min = dt_object.hour * 60 + dt_object.minute
                 
-            selected = selected[-count:]
-            paths_downloaded = []
-            hashes_downloaded = []
-            for remote_path in selected:
-                ext = os.path.splitext(remote_path)[1]
-                temp_name = f"temp_{int(time.time()*1000)}_{random.randint(100,999)}{ext}"
-                local_temp_path = os.path.abspath(os.path.join(dest_dir, temp_name))
-                try:
-                    self.d.pull(remote_path.replace("\\", "/"), local_temp_path)
-                    if not os.path.exists(local_temp_path): continue
-                    f_hash = self._calculate_file_hash(local_temp_path)
-                    final_name = f"{f_hash}{ext}" if f_hash else temp_name
-                    local_final_path = os.path.abspath(os.path.join(dest_dir, final_name))
-                    if f_hash and os.path.exists(local_final_path): os.remove(local_temp_path)
-                    else: os.rename(local_temp_path, local_final_path)
-                    rel_base = "images" if "image" in media_type else "audio"
-                    rel_path = os.path.join("media", rel_base, os.path.basename(local_final_path)).replace("\\", "/")
-                    paths_downloaded.append(rel_path)
-                    hashes_downloaded.append(f_hash if f_hash else "NO_HASH")
-                except Exception:
-                    continue
-            return "|".join(paths_downloaded), "|".join(hashes_downloaded)
+                diff = abs(file_total_min - msg_total_min) if msg_total_min != -1 else 999
+                files_of_the_day.append({
+                    'path': fpath.strip(),
+                    'diff': diff,
+                    'ts': float(ts_str)
+                })
+
+            # 3. Ordena pela menor diferença de tempo E depois pelo timestamp ABSOLUTO (cronologia pura)
+            # Como estamos no modo LEGADO (do presente para o passado), queremos os arquivos
+            # mais recentes do lote primeiro dentro do mesmo minuto.
+            files_of_the_day.sort(key=lambda x: (x['diff'], -x['ts']))
+            
+            # Filtra os N melhores (count) que não foram baixados nesta run
+            target_files = []
+            for f in files_of_the_day:
+                if f['path'] not in self.downloaded_remote_paths:
+                    target_files.append(f['path'])
+                if len(target_files) >= count: break
+
+            if not target_files: return None, None
+
+            paths_dl = []
+            hashes_dl = []
+            for remote_path in target_files:
+                ext = os.path.splitext(remote_path)[1] or (".jpg" if "image" in media_type else ".opus")
+                local_temp = os.path.abspath(os.path.join(self.img_dir if "image" in media_type else self.audio_dir, f"temp_hist_{random.randint(1000,9999)}{ext}"))
+                
+                self.d.pull(remote_path, local_temp)
+                if not os.path.exists(local_temp): continue
+                
+                f_hash = self._calculate_file_hash(local_temp)
+                final_name = f"{f_hash}{ext}" if f_hash else os.path.basename(local_temp)
+                local_final = os.path.join(os.path.dirname(local_temp), final_name)
+                
+                if not os.path.exists(local_final):
+                    os.rename(local_temp, local_final)
+                else:
+                    os.remove(local_temp)
+
+                self.downloaded_remote_paths.add(remote_path)
+                rel_base = "images" if "image" in media_type else "audio"
+                rel_path = os.path.join("media", rel_base, os.path.basename(local_final)).replace("\\", "/")
+                paths_dl.append(rel_path)
+                hashes_dl.append(f_hash or "unknown")
+
+            return "|".join(paths_dl), "|".join(hashes_dl)
         except Exception as e:
-            self.log.debug(f"Erro em DB temporal media: {e}")
-            return self._download_recent_media(media_type, count)
+            self.log.error(f"Erro na calibração histórica de {media_type}: {e}")
+            return None, None
 
     # -----------------------------------------------------------------------
     # NAVEGAÇÃO SEGURA
     # -----------------------------------------------------------------------
     def ensure_app_open(self):
-        """Garante que o WA Business está aberto, com até 3 tentativas."""
+        """
+        Garante que o WA Business está aberto e visível.
+        Tenta até 3 vezes antes de desistir.
+        """
         for attempt in range(1, 4):
             try:
                 current = self.d.app_current()
                 if current.get('package') == PACKAGE_NAME:
-                    self.log.debug("WA Business já está em primeiro plano.")
                     return True
                 
-                self.log.info(f"Abrindo WA Business (tentativa {attempt}/3)...")
+                self.log.warning(f"WA Business não detectado (tentativa {attempt}/3). Abrindo...")
                 self.d.app_start(PACKAGE_NAME)
-                time.sleep(3)
+                time.sleep(4) # Espera um pouco mais para carregar
                 
                 if self.d.app_current().get('package') == PACKAGE_NAME:
                     self.log.info("WA Business aberto com sucesso.")
                     return True
                 
-                # Fallback: busca na Home Screen
-                self.log.warning("Abertura direta falhou. Buscando na Home Screen...")
+                # Se falhar na abertura direta, tenta pressionar Home e abrir pelo ícone
                 self.d.press("home")
                 time.sleep(1)
-                
-                for page in range(5):
-                    if self.d(text="WA Business").exists(timeout=1):
-                        self.d(text="WA Business").click()
-                        time.sleep(3)
-                        if self.d.app_current().get('package') == PACKAGE_NAME:
-                            self.log.info("WA Business encontrado na Home Screen.")
-                            return True
-                    self.d.swipe_ext("left", scale=0.9)
-                    time.sleep(0.5)
-                    
+                if self.d(text="WA Business").exists(timeout=2):
+                    self.d(text="WA Business").click()
+                    time.sleep(4)
+                    if self.d.app_current().get('package') == PACKAGE_NAME:
+                        return True
+                        
             except Exception as e:
-                self.log.error(f"Erro na tentativa {attempt}: {e}")
+                self.log.error(f"Erro ao tentar abrir app (tentativa {attempt}): {e}")
                 time.sleep(2)
         
-        self.log.critical("Não foi possível abrir o WA Business após 3 tentativas.")
+        self.log.critical("CRÍTICO: Não foi possível abrir o WhatsApp após 3 tentativas. Encerrando por segurança.")
+        self.running = False
         return False
 
     def open_group(self, group_name):
@@ -1228,9 +1222,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--modo", 
-        choices=["auto", "listener", "legado", "export"],
-        default=config.get("modo", "auto"),
-        help="Modo: 'auto' (Gatilhos), 'listener' (Legado), 'export' (CSV)"
+        choices=["auto", "listener", "legado", "export", "combo"],
+        default=config.get("modo", "combo"),
+        help="Modo: 'auto' (Vigia), 'legado' (Histórico), 'combo' (Histórico depois Vigia)"
     )
     # Nota: No argparse mudei o nome 'listener' interno para 'auto' para o novo modo
     
@@ -1263,38 +1257,45 @@ if __name__ == "__main__":
     
     # Processa gatilhos
     
-    if args.modo in ["auto", "listener"]:
+    if args.modo in ["auto", "listener", "combo"]:
         # ── Modo Contínuo: monitora múltiplos grupos via badge ──
         listener = WhatsAppListener(target_groups=args.grupos, serial=args.serial)
         try:
+            # Se for o modo COMBO, roda primeiro o Arqueólogo (Legado) para todos os grupos
+            if args.modo == "combo":
+                listener.log.info(">>> INICIANDO MODO COMBO: Arqueologia iniciada antes do monitoramento...")
+                if listener.ensure_app_open():
+                    for grupo in args.grupos:
+                        if not listener.running: break
+                        if listener.open_group(grupo):
+                            listener.ingest_legacy(grupo, scrolls=args.scrolls)
+                            listener.return_to_chat_list()
+                    listener.log.info(">>> Arqueologia concluída. Migrando para modo VIGILANTE em tempo real...")
+
+            # Inicia o modo Vigilante (Auto)
             if listener.ensure_app_open():
-                listener.log.info(f"Modo AUTO ativo — monitorando {len(args.grupos)} grupo(s): {', '.join(args.grupos)}")
-                listener.log.info(f"Intervalo entre ciclos: {args.intervalo}s")
+                listener.log.info(f"Modo VIGILANTE ativo — monitorando {len(args.grupos)} grupo(s): {', '.join(args.grupos)}")
                 
                 while listener.running:
-                    # Garante que estamos na lista de conversas
+                    # Segurança: Garante que o app está aberto antes de cada ciclo
+                    if not listener.ensure_app_open():
+                        break
+                        
                     listener.return_to_chat_list()
                     time.sleep(1)
                     
-                    listener.log.debug(f"Ciclo iniciado para grupos: {args.grupos}")
                     for grupo in args.grupos:
-                        if not listener.running:
-                            break
+                        if not listener.running: break
                         
-                        # Scaneia a tela por badges para o grupo atual
                         unread_count = listener._check_unread_badge(grupo)
-                        
                         if unread_count > 0:
                             listener.log.info(f">>> Nova(s) mensagem(ns) em '{grupo}' — entrando para captura...")
                             if listener.open_group(grupo):
                                 listener.scrape_visible_messages(is_scrolling_up=False)
                                 listener.return_to_chat_list()
                                 time.sleep(1)
-                        else:
-                            listener.log.debug(f"Sem novidades em '{grupo}'")
                     
                     if listener.running:
-                        listener.log.debug(f"Ciclo concluído. Aguardando {args.intervalo}s...")
                         time.sleep(args.intervalo)
         finally:
             listener.close()
