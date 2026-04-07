@@ -37,3 +37,12 @@ last_*.xml
 config.json
 .vscode/
 .idea/
+
+# Environment and Debug
+.env
+debug_hierarchy.xml
+debug_tela.py
+error_weditor.txt
+db_audit.txt
+*.csv
+
